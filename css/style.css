@@ -1,0 +1,117 @@
+/* Zmienne globalne - centralne miejsce do zarządzania kolorystyką i motywem aplikacji. 
+   Ułatwiają utrzymanie spójności i ewentualne wdrożenie ciemnego motywu (Dark Mode). */
+:root {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --bg-color: #f3f4f6;
+    --surface-color: #ffffff;
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    --border-color: #e5e7eb;
+    --radius: 8px; /* Promień zaokrąglenia narożników wykorzystywany w całym projekcie */
+}
+
+/* Reset podstawowych marginesów, paddingów oraz ustawienie box-sizing.
+   Zapewnia to przewidywalne zachowanie rozmiarów elementów niezależnie od przeglądarki. */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Wykorzystanie modułu Flexbox do perfekcyjnego wyśrodkowania 
+   kontenera logowania w pionie i poziomie na całym ekranie. */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Główny kontener logowania - nadanie mu wyglądu nowoczesnej "karty" unoszącej się nad tłem */
+.login-container {
+    background-color: var(--surface-color);
+    padding: 2.5rem;
+    border-radius: var(--radius);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    width: 100%;
+    max-width: 400px; /* Ograniczenie szerokości gwarantuje responsywność na dużych i małych ekranach */
+    text-align: center;
+}
+
+.login-container h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-main);
+}
+
+/* Kontener dla pojedynczego pola formularza - zapewnia równe odstępy */
+.form-group {
+    margin-bottom: 1.25rem;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+/* Stylizacja samych pól tekstowych (input) - delikatne obramowanie, zaokrąglenia i przygotowane przejścia */
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s; /* Płynna animacja, która uruchomi się podczas kliknięcia (focus) */
+}
+
+/* Efekt "focus" - czytelna, wizualna informacja zwrotna dla użytkownika, gdy aktywnie wpisuje tekst */
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); /* Delikatna, niebieska poświata wskazująca aktywność */
+}
+
+/* Stylizacja głównego przycisku wysyłającego formularz */
+button[type="submit"] {
+    width: 100%;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.75rem;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+/* Zmiana koloru przycisku po najechaniu myszką na nieco ciemniejszy odcień niebieskiego */
+button[type="submit"]:hover {
+    background-color: var(--primary-hover);
+}
+
+.login-container p {
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+/* Ostylowanie odnośnika do rejestracji */
+.login-container a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.login-container a:hover {
+    text-decoration: underline;
+}
