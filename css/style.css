@@ -115,3 +115,26 @@ button[type="submit"]:hover {
 .login-container a:hover {
     text-decoration: underline;
 }
+/* Stylizacja dynamicznych komunikatów (sukces/błąd) */
+.message-box {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: none; /* Domyślnie ukryte */
+}
+
+.message-box.error {
+    display: block;
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #f87171;
+}
+
+.message-box.success {
+    display: block;
+    background-color: #dcfce3;
+    color: #166534;
+    border: 1px solid #86efac;
+}

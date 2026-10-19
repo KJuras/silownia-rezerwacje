@@ -2,19 +2,25 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <!-- Ustawienie viewportu jest kluczowe dla responsywnego układu strony na urządzeniach mobilnych -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Siłownia - Rezerwacje</title>
+    <!-- Podłączenie zewnętrznego arkusza stylów CSS -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    
-    <div class="login-container"> <!-- Główny kontener formularza logowania, który zostanie wyśrodkowany na ekranie przez Flexbox -->
+    <!-- Główny kontener formularza logowania, który zostanie wyśrodkowany na ekranie przez Flexbox -->
+    <div class="login-container">
         <h1>Logowanie do siłowni</h1>
         
-        <form id="loginForm"> <!-- Formularz z odpowiednim identyfikatorem (id), co pozwoli nam później na łatwe "chwycenie" go w JavaScript -->
-            <div class="form-group"> <!-- Grupowanie elementów formularza dla łatwiejszego zarządzania odstępami -->
+        <!-- Formularz z identyfikatorem ułatwiającym dostęp z poziomu JavaScript. -->
+        <!-- Atrybut 'novalidate' wyłącza domyślną walidację przeglądarki, pozwalając na pełną kontrolę walidacji w skrypcie JS. -->
+        <form id="loginForm" novalidate>
+            <!-- Grupowanie elementów formularza dla łatwiejszego zarządzania układem i odstępami -->
+            <div class="form-group">
                 <label for="email">Adres e-mail:</label>
-                <input type="email" id="email" name="email" required> <!-- Zastosowanie type="email" zapewnia natywną, wstępną walidację przeglądarki -->
+                <!-- Zastosowanie type="email" zapewnia poprawną semantykę pól formularza -->
+                <input type="email" id="email" name="email" required>
             </div>
             
             <div class="form-group">
@@ -22,12 +28,19 @@
                 <input type="password" id="password" name="password" required>
             </div>
     
-            <button type="submit">Zaloguj się</button>            <!-- Przycisk typu "submit" automatycznie triggeruje wysłanie formularza -->
+            <!-- Przycisk typu "submit" automatycznie wywołuje zdarzenie wysłania ('submit'), przechwytywane przez JS -->
+            <button type="submit">Zaloguj się</button>            
+            
+            <!-- Kontener na dynamiczne komunikaty (błędy/sukcesy) wstrzykiwane bezpośrednio przez JavaScript -->
+            <div id="message-box" class="message-box"></div>
         </form>
         
-        <p>Nie masz konta? <a href="#">Zarejestruj się</a></p>        <!-- Link kierujący do widoku rejestracji -->
+        <!-- Link kierujący do widoku rejestracji, który zaimplementujemy w późniejszych etapach -->
+        <p>Nie masz konta? <a href="#">Zarejestruj się</a></p>
     </div>
 
+    <!-- Skrypt umieszczony przed zamknięciem tagu <body> gwarantuje, 
+         że najpierw wyrenderuje się pełna struktura HTML, a dopiero potem uruchomi się logika -->
     <script src="js/script.js"></script>
 </body>
 </html>

@@ -1,47 +1,70 @@
-// To dobra praktyka, która gwarantuje, że skrypt nie spróbuje odwołać się do elementów HTML, zanim te nie zostaną wyrenderowane.
+// Nasłuchiwanie na zdarzenie 'DOMContentLoaded' gwarantuje, że skrypt uruchomi się 
+// dopiero po pełnym wyrenderowaniu struktury HTML (DOM) przez przeglądarkę.
 document.addEventListener('DOMContentLoaded', () => {
     
-    // Pobieramy element formularza logowania z drzewa DOM za pomocą jego identyfikatora (ID)
+    // Inicjalizacja stałych - pobieranie kluczowych elementów interfejsu za pomocą ich ID.
     const loginForm = document.getElementById('loginForm');
+    const messageBox = document.getElementById('message-box');
 
-    // Upewniamy się, że element istnieje na stronie, aby uniknąć błędów w konsoli
+    // Funkcja pomocnicza odpowiedzialna za dynamiczną aktualizację elementu DOM.
+    // Służy do wyświetlania komunikatów zwrotnych (sukces/błąd) bez przeładowania strony.
+    const showMessage = (message, isError = true) => {
+        // Wstrzyknięcie treści komunikatu
+        messageBox.textContent = message;
+        // Resetowanie klas elementu do stanu początkowego
+        messageBox.className = 'message-box';
+        // Dodanie odpowiedniej klasy CSS (.error lub .success), która zmieni wygląd 
+        // i zmieni właściwość display na 'block', ujawniając komunikat
+        messageBox.classList.add(isError ? 'error' : 'success'); 
+    };
+
+    // Warunek sprawdzający obecność formularza - zabezpiecza przed błędami na podstronach bez logowania
     if (loginForm) {
-        // Nasłuchujemy na zdarzenie 'submit' (wysłanie formularza, np. poprzez kliknięcie przycisku "Zaloguj się")
+        
+        // Główny mechanizm obsługi zdarzenia wysłania formularza
         loginForm.addEventListener('submit', function(event) {
             
-            // event.preventDefault() blokuje domyślne zachowanie przeglądarki, czyli przeładowanie strony.
-            // Dzięki temu będziemy mogli weryfikować i wysyłać dane "w tle" (Single Page Application).
+            // event.preventDefault() blokuje natywne przeładowanie strony,
+            // co pozwala na asynchroniczne przetworzenie danych (SPA).
             event.preventDefault();
 
-            // Pobieramy aktualne wartości z pól tekstowych i usuwamy białe znaki na początku i końcu (.trim())
+            // Usunięcie ewentualnych poprzednich stylów ukrywających, aby CSS mógł działać poprawnie
+            messageBox.style.display = '';
+            // Ukrycie komunikatu na ułamek sekundy przed nową walidacją poprzez reset klasy
+            messageBox.className = 'message-box';
+
+            // Pobranie danych wejściowych i usunięcie białych znaków (spacji na początku/końcu)
             const emailInput = document.getElementById('email').value.trim();
             const passwordInput = document.getElementById('password').value.trim();
 
-            // 1. Walidacja obecności danych (zabezpieczenie na wypadek obejścia atrybutu 'required' w HTML)
+            // --- ETAP WALIDACJI PO STRONIE KLIENTA ---
+
+            // 1. Walidacja obecności danych: sprawdzenie czy pola nie są puste
             if (!emailInput || !passwordInput) {
-                alert('Proszę wypełnić wszystkie pola.');
-                return; // Zatrzymujemy dalsze wykonywanie funkcji
+                showMessage('Proszę wypełnić wszystkie pola.', true);
+                return; // Przerwanie funkcji - formularz nie przechodzi dalej
             }
 
-            // 2. Walidacja formatu e-mail za pomocą wyrażenia regularnego (RegEx)
+            // 2. Walidacja formatu e-mail: użycie wyrażenia regularnego (RegEx)
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(emailInput)) {
-                alert('Proszę podać poprawny adres e-mail.');
+                showMessage('Proszę podać poprawny adres e-mail.', true);
                 return;
             }
 
-            // 3. Walidacja bezpieczeństwa: minimalna długość hasła
-            if (passwordInput.length < 16) {
-                alert('Hasło musi składać się z co najmniej 16 znaków.');
+            // 3. Walidacja polityki bezpieczeństwa: minimalna długość hasła
+            if (passwordInput.length < 8) {
+                showMessage('Hasło musi składać się z co najmniej 8 znaków.', true);
                 return;
             }
 
-            // Jeśli kod dotarł do tego miejsca, walidacja po stronie klienta zakończyła się sukcesem.
-            console.log('Walidacja lokalna poprawna. E-mail:', emailInput);
-            alert('Dane poprawne! W kolejnym etapie połączymy to z backendem w Node.js.');
+            // --- SUKCES WALIDACJI ---
             
-            // Opcjonalne wyczyszczenie formularza po udanej akcji
-            // loginForm.reset();
+            // Aktualizacja DOM z komunikatem o pozytywnym przebiegu weryfikacji
+            showMessage('Dane poprawne! Gotowe do wysłania przez Fetch API.', false);
+            
+            // TODO: Zgodnie z założeniami projektu, tutaj nastąpi integracja z backendem (Node.js)
+            // za pomocą Fetch API (wysyłanie danych w formacie JSON na serwer).
         });
     }
 });
