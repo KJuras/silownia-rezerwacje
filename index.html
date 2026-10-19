@@ -2,24 +2,19 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <!-- Ustawienie viewportu jest kluczowe dla responsywnego układu strony na urządzeniach mobilnych -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Siłownia - Rezerwacje</title>
-    <!-- Podłączenie zewnętrznego arkusza stylów CSS -->
+    <!-- Podłączenie arkusza stylów -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Główny kontener formularza logowania, który zostanie wyśrodkowany na ekranie przez Flexbox -->
     <div class="login-container">
         <h1>Logowanie do siłowni</h1>
         
-        <!-- Formularz z identyfikatorem ułatwiającym dostęp z poziomu JavaScript. -->
-        <!-- Atrybut 'novalidate' wyłącza domyślną walidację przeglądarki, pozwalając na pełną kontrolę walidacji w skrypcie JS. -->
+        <!-- Formularz z wyłączoną natywną walidacją przeglądarki (novalidate) -->
         <form id="loginForm" novalidate>
-            <!-- Grupowanie elementów formularza dla łatwiejszego zarządzania układem i odstępami -->
             <div class="form-group">
                 <label for="email">Adres e-mail:</label>
-                <!-- Zastosowanie type="email" zapewnia poprawną semantykę pól formularza -->
                 <input type="email" id="email" name="email" required>
             </div>
             
@@ -28,19 +23,15 @@
                 <input type="password" id="password" name="password" required>
             </div>
     
-            <!-- Przycisk typu "submit" automatycznie wywołuje zdarzenie wysłania ('submit'), przechwytywane przez JS -->
             <button type="submit">Zaloguj się</button>            
-            
-            <!-- Kontener na dynamiczne komunikaty (błędy/sukcesy) wstrzykiwane bezpośrednio przez JavaScript -->
+            <!-- Kontener na komunikaty wstrzykiwane z JavaScript -->
             <div id="message-box" class="message-box"></div>
         </form>
         
-        <!-- Link kierujący do widoku rejestracji, który zaimplementujemy w późniejszych etapach -->
         <p>Nie masz konta? <a href="#">Zarejestruj się</a></p>
     </div>
 
-    <!-- Skrypt umieszczony przed zamknięciem tagu <body> gwarantuje, 
-         że najpierw wyrenderuje się pełna struktura HTML, a dopiero potem uruchomi się logika -->
+    <!-- Podłączenie skryptu JS przed zamknięciem tagu body -->
     <script src="js/script.js"></script>
 </body>
 </html>

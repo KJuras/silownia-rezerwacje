@@ -1,0 +1,9 @@
+# Ignorujemy ciężki folder z paczkami (Node automatycznie go odtworzy z package.json)
+node_modules/
+
+# Ignorujemy plik z sekretnymi kluczami i hasłami (bezpieczeństwo!)
+.env
+
+# Ignorujemy ukryte pliki systemowe (Mac/Windows)
+.DS_Store
+Thumbs.db

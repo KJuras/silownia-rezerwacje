@@ -1,70 +1,102 @@
-// Nasłuchiwanie na zdarzenie 'DOMContentLoaded' gwarantuje, że skrypt uruchomi się 
-// dopiero po pełnym wyrenderowaniu struktury HTML (DOM) przez przeglądarkę.
+// Nasłuchiwanie na pełne wyrenderowanie struktury drzewa DOM przed uruchomieniem skryptu
 document.addEventListener('DOMContentLoaded', () => {
     
-    // Inicjalizacja stałych - pobieranie kluczowych elementów interfejsu za pomocą ich ID.
+    // Pobranie elementów formularza i kontenera na komunikaty
     const loginForm = document.getElementById('loginForm');
     const messageBox = document.getElementById('message-box');
 
-    // Funkcja pomocnicza odpowiedzialna za dynamiczną aktualizację elementu DOM.
-    // Służy do wyświetlania komunikatów zwrotnych (sukces/błąd) bez przeładowania strony.
+    // Funkcja pomocnicza do dynamicznej manipulacji DOM (wyświetlanie komunikatów zwrotnych)
     const showMessage = (message, isError = true) => {
-        // Wstrzyknięcie treści komunikatu
         messageBox.textContent = message;
-        // Resetowanie klas elementu do stanu początkowego
         messageBox.className = 'message-box';
-        // Dodanie odpowiedniej klasy CSS (.error lub .success), która zmieni wygląd 
-        // i zmieni właściwość display na 'block', ujawniając komunikat
         messageBox.classList.add(isError ? 'error' : 'success'); 
     };
 
-    // Warunek sprawdzający obecność formularza - zabezpiecza przed błędami na podstronach bez logowania
     if (loginForm) {
         
-        // Główny mechanizm obsługi zdarzenia wysłania formularza
+        // Przechwycenie zdarzenia wysłania formularza
         loginForm.addEventListener('submit', function(event) {
             
-            // event.preventDefault() blokuje natywne przeładowanie strony,
-            // co pozwala na asynchroniczne przetworzenie danych (SPA).
+            // Zablokowanie domyślnej akcji przeładowania strony po wysłaniu formularza
             event.preventDefault();
 
-            // Usunięcie ewentualnych poprzednich stylów ukrywających, aby CSS mógł działać poprawnie
+            // Przywrócenie widoczności kontenera i reset klas
             messageBox.style.display = '';
-            // Ukrycie komunikatu na ułamek sekundy przed nową walidacją poprzez reset klasy
             messageBox.className = 'message-box';
 
-            // Pobranie danych wejściowych i usunięcie białych znaków (spacji na początku/końcu)
+            // Pobranie i oczyszczenie danych wejściowych od użytkownika
             const emailInput = document.getElementById('email').value.trim();
             const passwordInput = document.getElementById('password').value.trim();
 
-            // --- ETAP WALIDACJI PO STRONIE KLIENTA ---
+            // =========================================================================
+            // ETAP 1: WALIDACJA PO STRONIE KLIENTA (FRONTEND)
+            // Chroni serwer przed niepotrzebnymi zapytaniami sieciowymi.
+            // =========================================================================
 
-            // 1. Walidacja obecności danych: sprawdzenie czy pola nie są puste
+            // 1. Sprawdzenie obecności danych (czy pola nie są puste)
             if (!emailInput || !passwordInput) {
                 showMessage('Proszę wypełnić wszystkie pola.', true);
-                return; // Przerwanie funkcji - formularz nie przechodzi dalej
+                return; // Przerwanie funkcji - fetch() NIE zostanie wywołany!
             }
 
-            // 2. Walidacja formatu e-mail: użycie wyrażenia regularnego (RegEx)
+            // 2. Sprawdzenie formatu adresu e-mail (wyrażenie regularne)
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(emailInput)) {
                 showMessage('Proszę podać poprawny adres e-mail.', true);
-                return;
+                return; // Przerwanie funkcji - fetch() NIE zostanie wywołany!
             }
 
-            // 3. Walidacja polityki bezpieczeństwa: minimalna długość hasła
+            // 3. Sprawdzenie wymogów bezpieczeństwa (długość hasła min. 8 znaków)
             if (passwordInput.length < 8) {
                 showMessage('Hasło musi składać się z co najmniej 8 znaków.', true);
-                return;
+                return; // Przerwanie funkcji - fetch() NIE zostanie wywołany!
             }
 
-            // --- SUKCES WALIDACJI ---
+            // =========================================================================
+            // ETAP 2: KOMUNIKACJA SIECIOWA (FETCH API / BACKEND)
+            // Wywoływana TYLKO wtedy, gdy dane przeszły pomyślnie walidację frontendową.
+            // =========================================================================
             
-            // Aktualizacja DOM z komunikatem o pozytywnym przebiegu weryfikacji
-            showMessage('Dane poprawne! Gotowe do wysłania przez Fetch API.', false);
-            
-            // TODO: Zgodnie z założeniami projektu, tutaj nastąpi integracja z backendem (Node.js)
-            // za pomocą Fetch API (wysyłanie danych w formacie JSON na serwer).
+            const attemptLogin = async () => {
+                
+                // Informacja dla użytkownika o trwającym połączeniu
+                showMessage('Trwa logowanie, proszę czekać...', false);
+                messageBox.classList.remove('success');
+
+                try {
+                    // Użycie adresu 127.0.0.1 zamiast localhost zapobiega konfliktom z protokołem IPv6
+                    const response = await fetch('http://127.0.0.1:5000/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        // Konwersja obiektu JS do ciągu znaków w formacie JSON
+                        body: JSON.stringify({ 
+                            email: emailInput, 
+                            password: passwordInput 
+                        })
+                    });
+
+                    // Odczytanie odpowiedzi przesłanej przez serwer Node.js
+                    const data = await response.json();
+
+                    // Obsługa odpowiedzi w zależności od statusu HTTP (2xx = sukces, inne = błąd)
+                    if (response.ok) {
+                        showMessage(data.message, false); // Zielony komunikat z backendu
+                        console.log('Zalogowano poprawnie. Dane użytkownika:', data.user);
+                    } else {
+                        showMessage(data.message, true);  // Czerwony komunikat z backendu (np. złe hasło)
+                    }
+
+                } catch (error) {
+                    // Wyłapanie błędów połączenia (np. brak uruchomionego serwera w terminalu)
+                    console.error('[Sieć] Błąd połączenia z serwerem:', error);
+                    showMessage('Brak połączenia z serwerem. Upewnij się, że backend jest uruchomiony.', true);
+                }
+            };
+
+            // Wywołanie asynchronicznej funkcji logowania
+            attemptLogin();
         });
     }
 });
