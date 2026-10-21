@@ -50,7 +50,7 @@ app.post('/api/login', (req, res) => {
 
     // Dane testowe (mockowanie bazy danych do czasu integracji z PostgreSQL)
     const MOCK_DB_EMAIL = 'admin@silownia.pl';
-    const MOCK_DB_PASSWORD = 'superbezpiecznehaslo';
+    const MOCK_DB_PASSWORD = 'haslo123';
 
     // Weryfikacja tożsamości
     if (email === MOCK_DB_EMAIL && password === MOCK_DB_PASSWORD) {

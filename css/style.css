@@ -196,4 +196,50 @@ button[type="submit"]:hover {
 .box.selecting { background-color: #ffc107; }
 
 
+/* --- EFEKTY NAYECHANIA (HOVER) I PRZYCISKI --- */
+.hover-btn {
+    transition: background-color 0.3s ease, transform 0.1s;
+    cursor: pointer;
+}
+.hover-btn:active { transform: scale(0.98); }
 
+/* Podświetlenie przycisku potwierdzenia */
+.booking-btn:hover { background-color: #0056b3; }
+
+/* Przycisk wylogowania */
+.header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.logout-btn { background-color: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; }
+.logout-btn:hover { background-color: #5a6268; }
+
+/* Podświetlanie ZIELONYCH (własnych) okienek */
+.time-slot.my-booking { 
+    background-color: #28a745; 
+    color: white; 
+    cursor: pointer; /* Zmieniono z not-allowed na pointer */
+} 
+.time-slot.my-booking:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+/* --- INTERFEJS ANULOWANIA REZERWACJI --- */
+.cancel-container {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #856404;
+}
+.cancel-btn { background-color: #dc3545; color: white; padding: 10px 15px; border: none; border-radius: 5px; margin-right: 10px; }
+.cancel-btn:hover { background-color: #c82333; }
+.close-btn { background-color: #6c757d; color: white; padding: 10px 15px; border: none; border-radius: 5px; }
+.close-btn:hover { background-color: #5a6268; }
+
+/* Klasa dla rezerwacji zaznaczonych do anulowania */
+.time-slot.to-cancel { 
+    background-color: #dc3545 !important; 
+    border-color: #c82333 !important; 
+    color: white;
+}
