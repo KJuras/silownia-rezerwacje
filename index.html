@@ -3,35 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Siłownia - Rezerwacje</title>
-    <!-- Podłączenie arkusza stylów -->
+    <title>Siłownia - System Rezerwacji</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="login-container">
+    
+    <!-- SEKCJA 1: LOGOWANIE -->
+    <div id="login-section" class="login-container">
         <h1>Logowanie do siłowni</h1>
-        
-        <!-- Formularz z wyłączoną natywną walidacją przeglądarki (novalidate) -->
         <form id="loginForm" novalidate>
             <div class="form-group">
                 <label for="email">Adres e-mail:</label>
                 <input type="email" id="email" name="email" required>
             </div>
-            
             <div class="form-group">
                 <label for="password">Hasło:</label>
                 <input type="password" id="password" name="password" required>
             </div>
-    
             <button type="submit">Zaloguj się</button>            
-            <!-- Kontener na komunikaty wstrzykiwane z JavaScript -->
             <div id="message-box" class="message-box"></div>
         </form>
-        
-        <p>Nie masz konta? <a href="#">Zarejestruj się</a></p>
     </div>
 
-    <!-- Podłączenie skryptu JS przed zamknięciem tagu body -->
+    <!-- SEKCJA 2: PANEL REZERWACJI -->
+    <div id="reservation-section" class="reservation-container" style="display: none;">
+        <h1>Witaj w panelu rezerwacji!</h1>
+        <p>Wybierz datę i zaznacz interesujące Cię godziny (minimum 1 godzina = 2 sąsiadujące okienka).</p>
+        
+        <!-- Klasyczny wybór daty -->
+        <div class="calendar-controls">
+            <label for="reservation-date">Wybierz datę: </label>
+            <input type="date" id="reservation-date">
+        </div>
+
+        <div class="legend">
+            <span class="legend-item"><div class="box free"></div> Wolne</span>
+            <span class="legend-item"><div class="box taken"></div> Zajęte</span>
+            <span class="legend-item"><div class="box my-booking"></div> Twoje rezerwacje</span>
+            <span class="legend-item"><div class="box selecting"></div> Wybierane</span>
+        </div>
+
+        <!-- Przewijane okno na 37 kafelków -->
+        <div class="scrollable-time-container">
+            <div id="time-slots-grid" class="time-slots-grid"></div>
+        </div>
+
+        <button id="confirm-booking-btn" class="booking-btn">Potwierdź rezerwację</button>
+        <div id="booking-message" class="message-box"></div>
+    </div>
+
     <script src="js/script.js"></script>
 </body>
 </html>

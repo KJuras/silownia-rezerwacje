@@ -1,102 +1,201 @@
-// Nasłuchiwanie na pełne wyrenderowanie struktury drzewa DOM przed uruchomieniem skryptu
 document.addEventListener('DOMContentLoaded', () => {
     
-    // Pobranie elementów formularza i kontenera na komunikaty
+    // --- REFERENCJE DO ELEMENTÓW ---
     const loginForm = document.getElementById('loginForm');
     const messageBox = document.getElementById('message-box');
+    const loginSection = document.getElementById('login-section');
+    const reservationSection = document.getElementById('reservation-section');
 
-    // Funkcja pomocnicza do dynamicznej manipulacji DOM (wyświetlanie komunikatów zwrotnych)
     const showMessage = (message, isError = true) => {
         messageBox.textContent = message;
+        messageBox.style.display = 'block';
         messageBox.className = 'message-box';
         messageBox.classList.add(isError ? 'error' : 'success'); 
     };
 
+    // ==========================================
+    // ETAP 1: LOGOWANIE
+    // ==========================================
     if (loginForm) {
-        
-        // Przechwycenie zdarzenia wysłania formularza
         loginForm.addEventListener('submit', function(event) {
-            
-            // Zablokowanie domyślnej akcji przeładowania strony po wysłaniu formularza
             event.preventDefault();
-
-            // Przywrócenie widoczności kontenera i reset klas
-            messageBox.style.display = '';
-            messageBox.className = 'message-box';
-
-            // Pobranie i oczyszczenie danych wejściowych od użytkownika
+            
             const emailInput = document.getElementById('email').value.trim();
             const passwordInput = document.getElementById('password').value.trim();
 
-            // =========================================================================
-            // ETAP 1: WALIDACJA PO STRONIE KLIENTA (FRONTEND)
-            // Chroni serwer przed niepotrzebnymi zapytaniami sieciowymi.
-            // =========================================================================
+            if (!emailInput || !passwordInput) { return showMessage('Proszę wypełnić wszystkie pola.', true); }
+            if (passwordInput.length < 8) { return showMessage('Hasło musi mieć min. 8 znaków.', true); }
 
-            // 1. Sprawdzenie obecności danych (czy pola nie są puste)
-            if (!emailInput || !passwordInput) {
-                showMessage('Proszę wypełnić wszystkie pola.', true);
-                return; // Przerwanie funkcji - fetch() NIE zostanie wywołany!
-            }
-
-            // 2. Sprawdzenie formatu adresu e-mail (wyrażenie regularne)
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(emailInput)) {
-                showMessage('Proszę podać poprawny adres e-mail.', true);
-                return; // Przerwanie funkcji - fetch() NIE zostanie wywołany!
-            }
-
-            // 3. Sprawdzenie wymogów bezpieczeństwa (długość hasła min. 8 znaków)
-            if (passwordInput.length < 8) {
-                showMessage('Hasło musi składać się z co najmniej 8 znaków.', true);
-                return; // Przerwanie funkcji - fetch() NIE zostanie wywołany!
-            }
-
-            // =========================================================================
-            // ETAP 2: KOMUNIKACJA SIECIOWA (FETCH API / BACKEND)
-            // Wywoływana TYLKO wtedy, gdy dane przeszły pomyślnie walidację frontendową.
-            // =========================================================================
-            
             const attemptLogin = async () => {
-                
-                // Informacja dla użytkownika o trwającym połączeniu
-                showMessage('Trwa logowanie, proszę czekać...', false);
-                messageBox.classList.remove('success');
-
+                showMessage('Trwa logowanie...', false);
                 try {
-                    // Użycie adresu 127.0.0.1 zamiast localhost zapobiega konfliktom z protokołem IPv6
                     const response = await fetch('http://127.0.0.1:5000/api/login', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        // Konwersja obiektu JS do ciągu znaków w formacie JSON
-                        body: JSON.stringify({ 
-                            email: emailInput, 
-                            password: passwordInput 
-                        })
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: emailInput, password: passwordInput })
                     });
-
-                    // Odczytanie odpowiedzi przesłanej przez serwer Node.js
                     const data = await response.json();
 
-                    // Obsługa odpowiedzi w zależności od statusu HTTP (2xx = sukces, inne = błąd)
                     if (response.ok) {
-                        showMessage(data.message, false); // Zielony komunikat z backendu
-                        console.log('Zalogowano poprawnie. Dane użytkownika:', data.user);
+                        loginSection.style.display = 'none';
+                        reservationSection.style.display = 'block';
+                        document.getElementById('reservation-date').valueAsDate = new Date();
+                        
+                        generateTimeSlots(); // Inicjalizacja siatki po logowaniu
                     } else {
-                        showMessage(data.message, true);  // Czerwony komunikat z backendu (np. złe hasło)
+                        showMessage(data.message, true);
                     }
-
                 } catch (error) {
-                    // Wyłapanie błędów połączenia (np. brak uruchomionego serwera w terminalu)
-                    console.error('[Sieć] Błąd połączenia z serwerem:', error);
-                    showMessage('Brak połączenia z serwerem. Upewnij się, że backend jest uruchomiony.', true);
+                    showMessage('Brak połączenia z serwerem. Upewnij się, że backend działa.', true);
                 }
             };
-
-            // Wywołanie asynchronicznej funkcji logowania
-            attemptLogin();
+            
+            attemptLogin(); 
         });
     }
+
+    // ==========================================
+    // ETAP 2: KALENDARZ I ZARZĄDZANIE REZERWACJAMI
+    // ==========================================
+    const gridContainer = document.getElementById('time-slots-grid');
+    const dateInput = document.getElementById('reservation-date');
+    const confirmBtn = document.getElementById('confirm-booking-btn');
+    const bookingMessage = document.getElementById('booking-message');
+    
+    let currentlySelectedSlots = [];
+    let generatedHoursArray = []; 
+    
+    // SYMULACJA BAZY DANYCH (Teraz jako zmienne globalne, aby można było je aktualizować i usuwać)
+    let myBookings = ['16:00', '16:30']; // Nasze zielone kafelki
+    const takenByOthers = ['17:00', '17:30', '19:00']; // Czerwone kafelki innych
+
+    // Reakcja na zmianę daty
+    dateInput.addEventListener('change', () => {
+        generateTimeSlots();
+    });
+
+    const generateTimeSlots = () => {
+        gridContainer.innerHTML = '';
+        currentlySelectedSlots = []; 
+        generatedHoursArray = [];
+
+        // Generowanie przedziału 5:00 - 23:00
+        for (let h = 5; h <= 23; h++) {
+            const formattedHour = h.toString().padStart(2, '0');
+            generatedHoursArray.push(`${formattedHour}:00`);
+            if (h < 23) { generatedHoursArray.push(`${formattedHour}:30`); }
+        }
+
+        generatedHoursArray.forEach(time => {
+            const slot = document.createElement('div');
+            slot.classList.add('time-slot');
+            slot.textContent = time;
+            slot.dataset.time = time;
+
+            if (myBookings.includes(time)) {
+                slot.classList.add('my-booking'); // ZIELONE
+                // NOWOŚĆ: Nasłuchiwanie na kliknięcie własnej rezerwacji (Anulowanie)
+                slot.addEventListener('click', () => handleCancelBooking(time));
+                
+            } else if (takenByOthers.includes(time)) {
+                slot.classList.add('taken'); // CZERWONE (Zablokowane)
+                
+            } else {
+                slot.classList.add('free'); // BIAŁE (Można rezerwować)
+                slot.addEventListener('click', () => toggleSlotSelection(slot, time));
+            }
+
+            gridContainer.appendChild(slot);
+        });
+    };
+
+    // --- FUNKCJA ANULOWANIA REZERWACJI ---
+    const handleCancelBooking = (time) => {
+        // window.confirm to wbudowana w przeglądarkę funkcja okienka z pytaniem (OK / Anuluj)
+        const isConfirmed = window.confirm(`Czy na pewno chcesz anulować rezerwację na godzinę ${time}?`);
+        
+        if (isConfirmed) {
+            // Usunięcie wybranej godziny z tablicy naszych rezerwacji
+            myBookings = myBookings.filter(t => t !== time);
+            
+            // Przeładowanie widoku kalendarza, by zaktualizować kolory
+            generateTimeSlots();
+            
+            bookingMessage.textContent = `Pomyślnie anulowano rezerwację o godzinie ${time}.`;
+            bookingMessage.className = 'message-box success';
+            bookingMessage.style.display = 'block';
+        }
+    };
+
+    const toggleSlotSelection = (slotElement, time) => {
+        if (slotElement.classList.contains('selecting')) {
+            slotElement.classList.remove('selecting');
+            currentlySelectedSlots = currentlySelectedSlots.filter(t => t !== time);
+        } else {
+            slotElement.classList.add('selecting');
+            currentlySelectedSlots.push(time);
+        }
+    };
+
+    // ==========================================
+    // ETAP 3: WALIDACJA I WYSYŁKA NOWYCH REZERWACJI
+    // ==========================================
+    confirmBtn.addEventListener('click', () => {
+        
+        if (currentlySelectedSlots.length === 0) {
+            return; // Brak wyboru, nic nie robimy
+        }
+
+        // --- REGUŁA 1: Przedłużanie vs Nowa rezerwacja ---
+        if (currentlySelectedSlots.length === 1) {
+            const selectedTime = currentlySelectedSlots[0];
+            const indexInArray = generatedHoursArray.indexOf(selectedTime);
+            
+            // Pobieramy godzinę "przed" i "po" wybranym kafelku
+            const prevSlot = generatedHoursArray[indexInArray - 1];
+            const nextSlot = generatedHoursArray[indexInArray + 1];
+            
+            // Sprawdzamy, czy któryś z sąsiadów znajduje się na liście naszych rezerwacji
+            const isExtension = myBookings.includes(prevSlot) || myBookings.includes(nextSlot);
+            
+            if (!isExtension) {
+                bookingMessage.textContent = 'Błąd: Nowa rezerwacja musi trwać minimum 1 godzinę (2 okienka). Pojedynczy kafelek możesz wybrać tylko jako przedłużenie istniejącej rezerwacji.';
+                bookingMessage.className = 'message-box error';
+                bookingMessage.style.display = 'block';
+                return;
+            }
+        } 
+        // --- REGUŁA 2: Sprawdzenie ciągłości dla wielu okienek ---
+        else {
+            const selectedIndices = currentlySelectedSlots
+                .map(time => generatedHoursArray.indexOf(time))
+                .sort((a, b) => a - b);
+
+            let isConsecutive = true;
+            for (let i = 1; i < selectedIndices.length; i++) {
+                if (selectedIndices[i] !== selectedIndices[i - 1] + 1) {
+                    isConsecutive = false;
+                    break;
+                }
+            }
+
+            if (!isConsecutive) {
+                bookingMessage.textContent = 'Błąd: Wybrane godziny muszą następować bezpośrednio po sobie (brak pustych luk).';
+                bookingMessage.className = 'message-box error';
+                bookingMessage.style.display = 'block';
+                return;
+            }
+        }
+
+        // --- SUKCES ---
+        // Dodajemy nowo wybrane godziny do naszej listy zielonych rezerwacji
+        myBookings.push(...currentlySelectedSlots);
+        
+        bookingMessage.textContent = `Sukces! Zarezerwowano terminy: ${currentlySelectedSlots.sort().join(', ')}`;
+        bookingMessage.className = 'message-box success';
+        bookingMessage.style.display = 'block';
+        
+        // Przeładowujemy siatkę, by nowe godziny stały się zielone i reagowały na anulowanie
+        generateTimeSlots();
+    });
 });
