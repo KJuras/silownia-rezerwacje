@@ -9,97 +9,106 @@
 <body>
     
     <!-- ==========================================
-         SEKCJA 1: EKRAN POWITALNY (LOGOWANIE I REJESTRACJA)
-         Ten panel jest widoczny jako pierwszy po wejściu na stronę.
+         GŁÓWNY KONTENER APLIKACJI
+         Tag <main> informuje, że tu znajduje się kluczowa treść strony.
          ========================================== -->
-    <div id="auth-section" class="login-container">
+    <main>
         
-        <!-- Formularz Logowania (domyślnie widoczny) -->
-        <div id="login-box">
-            <h1>Logowanie do siłowni</h1>
-            <form id="loginForm" novalidate>
-                <div class="form-group">
-                    <label for="login-email">Adres e-mail:</label>
-                    <input type="email" id="login-email" required>
-                </div>
-                <div class="form-group">
-                    <label for="login-password">Hasło:</label>
-                    <input type="password" id="login-password" required>
-                </div>
-                <button type="submit" class="hover-btn">Zaloguj się</button>            
-            </form>
-            <!-- Link przełączający na widok rejestracji -->
-            <p style="text-align: center; margin-top: 15px;">Nie masz konta? <a href="#" id="show-register">Zarejestruj się</a></p>
-        </div>
+        <!-- ==========================================
+             SEKCJA 1: EKRAN POWITALNY (LOGOWANIE I REJESTRACJA)
+             Używamy tagu <section> zamiast <div> do wydzielenia logicznej części strony.
+             ========================================== -->
+        <section id="auth-section" class="login-container">
+            
+            <!-- Formularz Logowania (domyślnie widoczny) -->
+            <div id="login-box">
+                <h1>Logowanie do siłowni</h1>
+                <form id="loginForm" novalidate>
+                    <div class="form-group">
+                        <label for="login-email">Adres e-mail:</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Hasło:</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="hover-btn">Zaloguj się</button>            
+                </form>
+                <!-- Link przełączający na widok rejestracji -->
+                <p style="text-align: center; margin-top: 15px;">Nie masz konta? <a href="#" id="show-register">Zarejestruj się</a></p>
+            </div>
 
-        <!-- Formularz Rejestracji (domyślnie ukryty, pokazuje się po kliknięciu linku wyżej) -->
-        <div id="register-box" style="display: none;">
-            <h1>Rejestracja</h1>
-            <form id="registerForm" novalidate>
-                <div class="form-group">
-                    <label for="reg-email">Adres e-mail:</label>
-                    <input type="email" id="reg-email" required>
-                </div>
-                <div class="form-group">
-                    <label for="reg-password">Hasło (min. 8 znaków):</label>
-                    <input type="password" id="reg-password" required>
-                </div>
-                <button type="submit" class="hover-btn" style="background-color: #28a745;">Utwórz konto</button>            
-            </form>
-            <!-- Link przełączający z powrotem na logowanie -->
-            <p style="text-align: center; margin-top: 15px;">Masz już konto? <a href="#" id="show-login">Zaloguj się</a></p>
-        </div>
+            <!-- Formularz Rejestracji (domyślnie ukryty, pokazuje się po kliknięciu linku wyżej) -->
+            <div id="register-box" style="display: none;">
+                <h1>Rejestracja</h1>
+                <form id="registerForm" novalidate>
+                    <div class="form-group">
+                        <label for="reg-email">Adres e-mail:</label>
+                        <input type="email" id="reg-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Hasło (min. 8 znaków):</label>
+                        <input type="password" id="reg-password" required>
+                    </div>
+                    <button type="submit" class="hover-btn" style="background-color: #28a745;">Utwórz konto</button>            
+                </form>
+                <!-- Link przełączający z powrotem na logowanie -->
+                <p style="text-align: center; margin-top: 15px;">Masz już konto? <a href="#" id="show-login">Zaloguj się</a></p>
+            </div>
 
-        <!-- Wspólne pole na komunikaty (np. błędne hasło, sukces rejestracji) -->
-        <div id="auth-message-box" class="message-box" style="display: none;"></div>
-    </div>
+            <!-- Wspólne pole na komunikaty (np. błędne hasło, sukces rejestracji) -->
+            <div id="auth-message-box" class="message-box" style="display: none;"></div>
+        </section>
 
-    <!-- ==========================================
-         SEKCJA 2: GŁÓWNY PANEL REZERWACJI (KALENDARZ)
-         Początkowo ukryty. Pokazuje się dopiero po udanym zalogowaniu.
-         ========================================== -->
-    <div id="reservation-section" class="reservation-container" style="display: none;">
-        
-        <!-- Pasek górny z przyciskiem wylogowania -->
-        <div class="header-actions">
-            <h1>Witaj w panelu rezerwacji!</h1>
-            <button id="logout-btn" class="logout-btn hover-btn">Wyloguj się</button>
-        </div>
+        <!-- ==========================================
+             SEKCJA 2: GŁÓWNY PANEL REZERWACJI (KALENDARZ)
+             Kolejna semantyczna <section>. Początkowo ukryta.
+             ========================================== -->
+        <section id="reservation-section" class="reservation-container" style="display: none;">
+            
+            <!-- Pasek górny z przyciskiem wylogowania -->
+            <!-- Używamy tagu <header> zamiast <div> dla nagłówka sekcji -->
+            <header class="header-actions">
+                <h1>Witaj w panelu rezerwacji!</h1>
+                <button id="logout-btn" class="logout-btn hover-btn">Wyloguj się</button>
+            </header>
 
-        <p>Wybierz datę i zaznacz interesujące Cię godziny (minimum 1 godzina = 2 sąsiadujące okienka).</p>
-        
-        <!-- Element pozwalający wybrać konkretny dzień z kalendarza systemowego -->
-        <div class="calendar-controls">
-            <label for="reservation-date">Wybierz datę: </label>
-            <input type="date" id="reservation-date">
-        </div>
+            <p>Wybierz datę i zaznacz interesujące Cię godziny (minimum 1 godzina = 2 sąsiadujące okienka).</p>
+            
+            <!-- Element pozwalający wybrać konkretny dzień z kalendarza systemowego -->
+            <div class="calendar-controls">
+                <label for="reservation-date">Wybierz datę: </label>
+                <input type="date" id="reservation-date">
+            </div>
 
-        <!-- Legenda tłumacząca znaczenie kolorów kafelków -->
-        <div class="legend">
-            <span class="legend-item"><div class="box free"></div> Wolne</span>
-            <span class="legend-item"><div class="box taken"></div> Zajęte</span>
-            <span class="legend-item"><div class="box my-booking"></div> Twoje rezerwacje</span>
-            <span class="legend-item"><div class="box selecting"></div> Wybierane</span>
-        </div>
+            <!-- Legenda tłumacząca znaczenie kolorów kafelków -->
+            <div class="legend">
+                <span class="legend-item"><div class="box free"></div> Wolne</span>
+                <span class="legend-item"><div class="box taken"></div> Zajęte</span>
+                <span class="legend-item"><div class="box my-booking"></div> Twoje rezerwacje</span>
+                <span class="legend-item"><div class="box selecting"></div> Wybierane</span>
+            </div>
 
-        <!-- Główna siatka, do której skrypt JavaScript wrzuca wygenerowane godziny (np. 15:30) -->
-        <div class="scrollable-time-container">
-            <div id="time-slots-grid" class="time-slots-grid"></div>
-        </div>
+            <!-- Główna siatka, do której skrypt JavaScript wrzuca wygenerowane godziny (np. 15:30) -->
+            <div class="scrollable-time-container">
+                <div id="time-slots-grid" class="time-slots-grid"></div>
+            </div>
 
-        <!-- Panel pojawiający się tylko w momencie chęci anulowania wybranej rezerwacji -->
-        <div id="cancel-container" class="cancel-container" style="display: none;">
-            <p>Czy na pewno chcesz anulować wybrane rezerwacje: <strong id="cancel-time-label"></strong>?</p>
-            <button id="confirm-cancel-btn" class="cancel-btn hover-btn">Anuluj wybrane</button>
-            <button id="close-cancel-btn" class="close-btn hover-btn">Zwiń</button>
-        </div>
+            <!-- Panel pojawiający się tylko w momencie chęci anulowania wybranej rezerwacji -->
+            <div id="cancel-container" class="cancel-container" style="display: none;">
+                <p>Czy na pewno chcesz anulować wybrane rezerwacje: <strong id="cancel-time-label"></strong>?</p>
+                <button id="confirm-cancel-btn" class="cancel-btn hover-btn">Anuluj wybrane</button>
+                <button id="close-cancel-btn" class="close-btn hover-btn">Zwiń</button>
+            </div>
 
-        <!-- Główny przycisk potwierdzający nowe rezerwacje -->
-        <button id="confirm-booking-btn" class="booking-btn hover-btn">Potwierdź rezerwację</button>
-        
-        <!-- Pole na komunikaty z kalendarza (np. błąd o braku ciągłości godzin) -->
-        <div id="booking-message" class="message-box" style="display: none;"></div>
-    </div>
+            <!-- Główny przycisk potwierdzający nowe rezerwacje -->
+            <button id="confirm-booking-btn" class="booking-btn hover-btn">Potwierdź rezerwację</button>
+            
+            <!-- Pole na komunikaty z kalendarza (np. błąd o braku ciągłości godzin) -->
+            <div id="booking-message" class="message-box" style="display: none;"></div>
+        </section>
+
+    </main>
 
     <!-- Podpięcie skryptu z logiką aplikacji na samym końcu -->
     <script src="js/script.js"></script>
