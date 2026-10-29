@@ -243,3 +243,11 @@ button[type="submit"]:hover {
     border-color: #c82333 !important; 
     color: white;
 }
+/* Zwiększona widoczność dla osób nawigujących klawiaturą */
+input:focus, 
+button:focus, 
+.time-slot:focus {
+    outline: 3px solid #12ad0d; /* Głęboki fiolet (możesz zmienić na inny z Twojej palety) */
+    outline-offset: 3px;
+    border-radius: 4px;
+}

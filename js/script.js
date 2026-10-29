@@ -183,6 +183,18 @@ document.addEventListener('DOMContentLoaded', () => {
         generatedHoursArray.forEach(time => {
             const slot = document.createElement('div');
             slot.classList.add('time-slot');
+            // --- NOWE: Ułatwienia dostępu (a11y) ---
+            slot.tabIndex = 0; // Pozwala najechać na kafelek klawiszem TAB
+            slot.setAttribute('aria-label', `Godzina ${time}`); // Opis głosowy dla czytnika ekranu
+
+            // Nasłuchiwanie na wciśnięcie klawisza (Enter lub Spacja)
+            slot.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault(); // Blokujemy domyślne przewijanie strony w dół po wciśnięciu spacji
+                    slot.click(); // Sztucznie wywołujemy to samo, co robi kliknięcie myszką
+                }
+            });
+            // ---------------------------------------
             slot.textContent = time; // Podpis okienka to godzina
             slot.dataset.time = time; // Pamiętamy godzinę w parametrach "pod spodem"
 
@@ -342,4 +354,138 @@ document.addEventListener('DOMContentLoaded', () => {
         
         generateTimeSlots(); // Przerysuj kalendarz z nowymi zielonymi polami
     });
+});
+
+// ==========================================
+// PRAWDZIWE LOGOWANIE (Bezpieczne)
+// ==========================================
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault(); 
+    
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const msgBox = document.getElementById('auth-message-box');
+
+    // Podstawowa walidacja front-endowa formatu e-mail
+    if (!email.includes('@')) {
+        if (msgBox) {
+            msgBox.textContent = "Podaj poprawny format e-mail.";
+            msgBox.style.display = 'block';
+            msgBox.style.color = '#dc3545';
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost:5000/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // === TYLKO TUTAJ NASTĘPUJE PRZEJŚCIE DO PANELU ===
+            userRole = data.user.role; 
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('reservation-section').style.display = 'block';
+            
+            if (msgBox) msgBox.style.display = 'none';
+            
+            // Automatyczne ustawienie dzisiejszej daty i wygenerowanie kafelków
+            const dateInput = document.getElementById('reservation-date');
+            if (dateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.value = today;
+            }
+            
+            generateTimeSlots();
+        } else {
+            // Błąd zwrócony przez serwer (np. złe hasło lub brak @)
+            if (msgBox) {
+                msgBox.textContent = data.message;
+                msgBox.style.display = 'block';
+                msgBox.style.color = '#dc3545';
+            }
+        }
+    } catch (err) {
+        console.error("Błąd fetch:", err);
+        if (msgBox) {
+            msgBox.textContent = "Błąd połączenia z serwerem. Upewnij się, że serwer działa na porcie 5000.";
+            msgBox.style.display = 'block';
+            msgBox.style.color = '#dc3545';
+        }
+    }
+});
+
+// ==========================================
+// REJESTRACJA (Połączenie z serwerem)
+// ==========================================
+const registerForm = document.getElementById('registerForm');
+if (registerForm) {
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('reg-email').value;
+        const password = document.getElementById('reg-password').value;
+        const msgBox = document.getElementById('auth-message-box');
+
+        try {
+            const response = await fetch('http://localhost:5000/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Rejestracja udana - pokazujemy zielony komunikat i przenosimy do logowania
+                if (msgBox) {
+                    msgBox.textContent = "Konto założone! Możesz się teraz zalogować.";
+                    msgBox.style.display = 'block';
+                    msgBox.style.color = '#28a745'; // Zielony kolor sukcesu
+                }
+                registerForm.reset();
+                
+                // Automatyczne przejście do ekranu logowania po 2 sekundach
+                setTimeout(() => {
+                    document.getElementById('show-login').click();
+                    if(msgBox) msgBox.style.display = 'none';
+                }, 2000);
+            } else {
+                // Błąd rejestracji (np. za krótkie hasło, lub e-mail już istnieje)
+                if (msgBox) {
+                    msgBox.textContent = data.message;
+                    msgBox.style.display = 'block';
+                    msgBox.style.color = '#dc3545';
+                } else {
+                    alert(data.message);
+                }
+            }
+        } catch (err) {
+            console.error("Błąd fetch:", err);
+            alert("Błąd połączenia z serwerem.");
+        }
+    });
+}
+
+// ==========================================
+// PRZEŁĄCZANIE WIDOKÓW LOGOWANIE / REJESTRACJA
+// ==========================================
+document.getElementById('show-register').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('register-box').style.display = 'block';
+    const msgBox = document.getElementById('auth-message-box');
+    if(msgBox) msgBox.style.display = 'none';
+});
+
+document.getElementById('show-login').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('register-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+    const msgBox = document.getElementById('auth-message-box');
+    if(msgBox) msgBox.style.display = 'none';
 });
