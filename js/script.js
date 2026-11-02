@@ -1,360 +1,349 @@
-// Czekamy na pełne załadowanie strony HTML przed uruchomieniem kodu
-document.addEventListener('DOMContentLoaded', () => {
-    
-    // --- POBIERANIE ELEMENTÓW Z EKRANU ---
-    // Przypisujemy fragmenty strony (np. formularze, przyciski) do zmiennych, aby móc nimi sterować
-    const authSection = document.getElementById('auth-section'); 
-    const loginBox = document.getElementById('login-box');
-    const registerBox = document.getElementById('register-box');
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm'); 
-    const reservationSection = document.getElementById('reservation-section');
-    const messageBox = document.getElementById('auth-message-box'); 
-    const logoutBtn = document.getElementById('logout-btn');
+// ==========================================
+// STAN APLIKACJI I ZMIENNE GLOBALNE
+// ==========================================
+let userRole = 'client'; 
+let currentUserId = null;    // Przechowuje ID zalogowanego użytkownika
+let selectedSlots = [];      // Kafelki wybrane do nowej rezerwacji
+let selectedToCancel = [];   // Kafelki wybrane do anulowania
 
-    // Funkcja pomocnicza: wyświetla kolorowe komunikaty (czerwone błędy lub zielone sukcesy)
-    const showMessage = (message, isError = true) => {
-        if (!messageBox) return; // Zabezpieczenie przed brakiem elementu
-        messageBox.textContent = message;
-        messageBox.style.display = 'block';
-        messageBox.className = 'message-box ' + (isError ? 'error' : 'success');
+let myBookings = [];         // Pobierane dynamicznie z bazy danych
+let takenByOthers = [];      // Pobierane dynamicznie z bazy danych
+
+const grid = document.getElementById('time-slots-grid');
+const dateInput = document.getElementById('reservation-date');
+
+// ==========================================
+// UNIWERSALNA WALIDACJA CIĄGŁOŚCI BLOKU
+// ==========================================
+function validateContinuousBlock(slots) {
+    if (slots.length === 0) return true; // Usunięcie wszystkich kafelków jest dozwolone
+    if (slots.length === 1) return false; // Minimum to 2 kafelki (1 godzina)
+    if (slots.length > 4) return false; // Maksimum to 4 kafelki (2 godziny)
+
+    // Sortujemy kafelki rosnąco, np. ['15:00', '15:30', '16:00']
+    const sortedSlots = [...slots].sort();
+    const timeToMinutes = (t) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
     };
 
-    // Funkcja sprawdzająca czy podany tekst wygląda jak prawdziwy e-mail (tzw. Wyrażenie Regularne)
-    const isValidEmail = (email) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email); // Zwraca prawda/fałsz
-    };
-
-    // --- ANIMOWANIE ZMIANY WIDOKÓW (Logowanie <-> Rejestracja) ---
-    // Zamiast ładować nową stronę, po prostu ukrywamy jeden box i pokazujemy drugi
-    document.getElementById('show-register')?.addEventListener('click', (e) => {
-        e.preventDefault(); // Blokuje domyślne "skakanie" strony do góry po kliknięciu w link
-        if (loginBox) loginBox.style.display = 'none';
-        if (registerBox) registerBox.style.display = 'block';
-        if (messageBox) messageBox.style.display = 'none';
-    });
-
-    document.getElementById('show-login')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (registerBox) registerBox.style.display = 'none';
-        if (loginBox) loginBox.style.display = 'block';
-        if (messageBox) messageBox.style.display = 'none';
-    });
-
-    // ==========================================
-    // ETAP 1: SYSTEM KONT (Rejestracja, Logowanie, Wylogowanie)
-    // ==========================================
-
-    // CO SIĘ DZIEJE PO KLIKNIĘCIU "UTWÓRZ KONTO":
-    if (registerForm) {
-        registerForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            
-            // Pobranie wpisanych danych
-            const emailInput = document.getElementById('reg-email')?.value.trim();
-            const passwordInput = document.getElementById('reg-password')?.value.trim();
-
-            // Sprawdzanie poprawności danych (walidacja po stronie przeglądarki)
-            if (!emailInput || !passwordInput) return showMessage('Proszę wypełnić wszystkie pola rejestracji.', true); 
-            if (!isValidEmail(emailInput)) return showMessage('Podaj poprawny adres e-mail.', true);
-            if (passwordInput.length < 8) return showMessage('Hasło musi mieć minimum 8 znaków.', true); 
-
-            // Jeśli wszystko ok - wyświetl sukces
-            showMessage('Konto pomyślnie utworzone! Możesz się teraz zalogować.', false);
-            registerForm.reset(); // Czyszczenie formularza
-            
-            // Po 2 sekundach automatycznie przenieś na ekran logowania
-            setTimeout(() => {
-                if (registerBox) registerBox.style.display = 'none';
-                if (loginBox) loginBox.style.display = 'block';
-            }, 2000);
-        });
+    // Sprawdzamy, czy każdy kolejny kafelek jest dokładnie 30 minut po poprzednim
+    for (let i = 1; i < sortedSlots.length; i++) {
+        if (timeToMinutes(sortedSlots[i]) - timeToMinutes(sortedSlots[i - 1]) !== 30) {
+            return false; // Wykryto lukę między kafelkami
+        }
     }
+    return true; // Blok jest ciągły i ma odpowiednią długość
+}
 
-    // CO SIĘ DZIEJE PO KLIKNIĘCIU "ZALOGUJ SIĘ":
-    if (loginForm) {
-        loginForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            
-            const emailInput = document.getElementById('login-email')?.value.trim();
-            const passwordInput = document.getElementById('login-password')?.value.trim();
+// ==========================================
+// INICJALIZACJA DATY
+// ==========================================
+if (dateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.min = today;
+    
+    // Zdarzenie zmiany daty w kalendarzu
+    dateInput.addEventListener('change', () => {
+        selectedSlots = [];
+        selectedToCancel = [];
+        hideMessage('booking-message');
+        document.getElementById('cancel-container').style.display = 'none';
+        
+        // Zamiast generować puste kafelki, pobieramy stan z bazy danych dla wybranego dnia
+        fetchReservations(dateInput.value);
+    });
+}
 
-            // Walidacja upewniająca się, że nikt nie wcisnął "Zaloguj" zostawiając puste pola
-            if (!emailInput || !passwordInput) return showMessage('Proszę wypełnić wszystkie pola.', true); 
-            if (!isValidEmail(emailInput)) return showMessage('Podaj poprawny format e-mail.', true);
-            if (passwordInput.length < 8) return showMessage('Hasło musi mieć min. 8 znaków.', true); 
+// ==========================================
+// POMOCNICZE: KOMUNIKATY WIZUALNE ON-PAGE
+// ==========================================
+function showMessage(elementId, text, isError = false) {
+    const msgBox = document.getElementById(elementId);
+    if (msgBox) {
+        msgBox.textContent = text;
+        msgBox.style.display = 'block';
+        msgBox.style.backgroundColor = isError ? 'rgba(220, 53, 69, 0.2)' : 'rgba(40, 167, 69, 0.2)';
+        msgBox.style.color = isError ? '#dc3545' : '#28a745';
+        msgBox.style.border = `1px solid ${isError ? '#dc3545' : '#28a745'}`;
+    }
+}
 
-            showMessage('Trwa logowanie...', false);
-            
-            try {
-                // Wysłanie zapytania z danymi logowania do naszego serwera Node.js
-                const response = await fetch('http://127.0.0.1:5000/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: emailInput, password: passwordInput })
-                });
-                
-                // Oczekiwanie na to, co odpowie serwer
-                const data = await response.json();
+function hideMessage(elementId) {
+    const msgBox = document.getElementById(elementId);
+    if (msgBox) {
+        msgBox.style.display = 'none';
+    }
+}
 
-                if (response.ok) {
-                    // Logowanie udane: Ukrywamy formularze, pokazujemy kalendarz
-                    if (authSection) authSection.style.display = 'none';
-                    if (reservationSection) reservationSection.style.display = 'block';
-                    
-                    // Ustawiamy w kalendarzu dzisiejszą datę
-                    const dateEl = document.getElementById('reservation-date');
-                    if (dateEl) dateEl.valueAsDate = new Date();
-                    
-                    // Rysujemy siatkę godzin
-                    generateTimeSlots(); 
-                } else {
-                    // Serwer odrzucił dane (np. złe hasło)
-                    showMessage(data.message || 'Błąd logowania.', true);
-                }
-            } catch (error) {
-                // Błąd krytyczny np. wyłączony serwer Node.js
-                showMessage('Brak połączenia z serwerem.', true);
+// ==========================================
+// KOMUNIKACJA Z BAZĄ DANYCH (REST API)
+// ==========================================
+
+// Pobieranie rezerwacji z serwera dla wybranej daty
+async function fetchReservations(dateString) {
+    if (!currentUserId) return; // Zapobiega pobieraniu bez zalogowania
+
+    try {
+        const response = await fetch(`http://localhost:5000/api/reservations?date=${dateString}`);
+        if (!response.ok) throw new Error('Błąd pobierania rezerwacji');
+        
+        const reservationsFromDb = await response.json();
+        
+        // Czyszczenie lokalnych tablic
+        myBookings = [];
+        takenByOthers = [];
+
+        // Kategoryzowanie pobranych rezerwacji
+        reservationsFromDb.forEach(res => {
+            if (res.user_id === currentUserId) {
+                myBookings.push(res.time_slot);
+            } else {
+                takenByOthers.push(res.time_slot);
             }
         });
+
+        // Po rozdzieleniu danych rysujemy kalendarz
+        generateTimeSlots();
+
+    } catch (err) {
+        console.error("Fetch error:", err);
+        showMessage('booking-message', 'Błąd: Nie udało się pobrać rezerwacji z serwera.', true);
     }
+}
 
-    // CO SIĘ DZIEJE PO KLIKNIĘCIU "WYLOGUJ":
-    logoutBtn?.addEventListener('click', () => {
-        // Chowamy kalendarz, przywracamy ekran logowania, ukrywamy wszystkie ewentualne okienka z błędami
-        if (reservationSection) reservationSection.style.display = 'none';
-        if (authSection) authSection.style.display = 'block';
-        if (loginBox) loginBox.style.display = 'block';
-        if (registerBox) registerBox.style.display = 'none';
-        if (loginForm) loginForm.reset();
-        
-        if (messageBox) messageBox.style.display = 'none';
-        const bMsg = document.getElementById('booking-message');
-        if (bMsg) bMsg.style.display = 'none';
-        const cancelCont = document.getElementById('cancel-container');
-        if (cancelCont) cancelCont.style.display = 'none';
-    });
-
-    // ==========================================
-    // ETAP 2: KALENDARZ (Siatka godzin i reguły biznesowe)
-    // ==========================================
-    const gridContainer = document.getElementById('time-slots-grid');
-    const dateInput = document.getElementById('reservation-date');
-    const confirmBtn = document.getElementById('confirm-booking-btn');
-    const bookingMessage = document.getElementById('booking-message');
+// ==========================================
+// GENEROWANIE SIATKI KALENDARZA (Z a11y)
+// ==========================================
+function generateTimeSlots() {
+    if (!grid) return;
+    grid.innerHTML = ''; 
     
-    const cancelContainer = document.getElementById('cancel-container');
-    const cancelTimeLabel = document.getElementById('cancel-time-label');
-    const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
-    const closeCancelBtn = document.getElementById('close-cancel-btn');
-    
-    // Tablice śledzące wyklikiwane przez nas elementy
-    let currentlySelectedSlots = [];
-    let slotsToCancel = []; 
-    let generatedHoursArray = []; 
-    
-    // Tymczasowe dane: Nasze zajęte okienka i zajęte przez innych (później zastąpi je baza danych)
-    let myBookings = ['16:00', '16:30']; 
-    const takenByOthers = ['17:00', '17:30', '19:00']; 
+    for (let hour = 8; hour <= 21; hour++) {
+        ['00', '30'].forEach(minutes => {
+            const time = `${hour.toString().padStart(2, '0')}:${minutes}`;
+            
+            let status = 'free';
+            if (takenByOthers.includes(time)) status = 'taken';
+            if (myBookings.includes(time)) status = 'my-booking';
 
-    // Jak użytkownik wybierze inną datę z kalendarzyka, odświeżamy siatkę godzin
-    dateInput?.addEventListener('change', () => generateTimeSlots());
+            // Zachowanie wizualnego stanu przy przerysowaniu
+            if (selectedSlots.includes(time)) status = 'selecting';
+            if (selectedToCancel.includes(time)) status = 'canceling';
 
-    // Główna funkcja budująca godziny od 5:00 do 23:00 na ekranie
-    const generateTimeSlots = () => {
-        if (!gridContainer) return;
-        
-        // Czyszczenie starego widoku
-        gridContainer.innerHTML = '';
-        currentlySelectedSlots = []; 
-        slotsToCancel = [];
-        if (cancelContainer) cancelContainer.style.display = 'none';
-        generatedHoursArray = [];
-
-        // Matematyczne pętle generujące godziny np. 05:00, 05:30
-        for (let h = 5; h <= 23; h++) {
-            const formattedHour = h.toString().padStart(2, '0');
-            generatedHoursArray.push(`${formattedHour}:00`);
-            if (h < 23) { generatedHoursArray.push(`${formattedHour}:30`); }
-        }
-
-        // Nakładanie kafelków na stronę na podstawie wygenerowanej przed chwilą rozpiski
-        generatedHoursArray.forEach(time => {
             const slot = document.createElement('div');
-            slot.classList.add('time-slot');
-            // --- NOWE: Ułatwienia dostępu (a11y) ---
-            slot.tabIndex = 0; // Pozwala najechać na kafelek klawiszem TAB
-            slot.setAttribute('aria-label', `Godzina ${time}`); // Opis głosowy dla czytnika ekranu
+            slot.classList.add('time-slot', status);
+            slot.textContent = time;
 
-            // Nasłuchiwanie na wciśnięcie klawisza (Enter lub Spacja)
+            // Dostępność dla niedowidzących (a11y)
+            slot.tabIndex = 0; 
+            slot.setAttribute('aria-label', `Godzina ${time}, status: ${status}`);
+
+            // Obsługa myszy
+            slot.addEventListener('click', () => handleSlotAction(slot, time, status));
+            
+            // Obsługa klawiatury (Enter / Spacja)
             slot.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault(); // Blokujemy domyślne przewijanie strony w dół po wciśnięciu spacji
-                    slot.click(); // Sztucznie wywołujemy to samo, co robi kliknięcie myszką
+                    event.preventDefault();
+                    slot.click();
                 }
             });
-            // ---------------------------------------
-            slot.textContent = time; // Podpis okienka to godzina
-            slot.dataset.time = time; // Pamiętamy godzinę w parametrach "pod spodem"
 
-            // Nadawanie kafelkom kolorów i zachowań w zależności od tego, do kogo należą
-            if (myBookings.includes(time)) {
-                slot.classList.add('my-booking'); // ZIELONY - nasze, kliknięcie pozwala anulować
-                slot.addEventListener('click', () => toggleCancelSelection(slot, time));
-            } else if (takenByOthers.includes(time)) {
-                slot.classList.add('taken'); // CZERWONY - cudze, zablokowane
-            } else {
-                slot.classList.add('free'); // BIAŁY - wolny, pozwala rezerwować
-                slot.addEventListener('click', () => toggleSlotSelection(slot, time));
-            }
-
-            gridContainer.appendChild(slot);
+            grid.appendChild(slot);
         });
-    };
+    }
+}
 
-    // Obsługa klikania w zielone okienka w celu ich skasowania
-    const toggleCancelSelection = (slotElement, time) => {
-        // Zaznacz/odznacz godzinę
-        if (slotsToCancel.includes(time)) {
-            slotsToCancel = slotsToCancel.filter(t => t !== time);
-            slotElement.classList.remove('to-cancel');
+// ==========================================
+// LOGIKA INTERAKCJI Z KAFELKAMI
+// ==========================================
+function handleSlotAction(slot, time, status) {
+    hideMessage('booking-message');
+
+    // 1. BLOKADA: Kafelki zajęte przez innych ubiegających się
+    if (status === 'taken') {
+        if (userRole === 'admin') {
+            // Zwykła wizualizacja dla admina, bez logiki klikania w zajęte kafelki
+            showMessage('booking-message', `[PODGLĄD ADMINA] Termin ${time} jest zarezerwowany przez innego klienta.`, true);
         } else {
-            slotsToCancel.push(time);
-            slotElement.classList.add('to-cancel');
+            showMessage('booking-message', `Termin ${time} jest niedostępny. Wybierz wolny godzinowy blok.`, true);
         }
+        return; 
+    }
 
-        // Jeśli wybrano coś do usunięcia, pokaż mały panel ostrzegawczy na dole
-        if (cancelContainer && cancelTimeLabel) {
-            if (slotsToCancel.length > 0) {
-                cancelTimeLabel.textContent = slotsToCancel.sort().join(', ');
-                cancelContainer.style.display = 'block';
-                if (bookingMessage) bookingMessage.style.display = 'none';
-            } else {
-                cancelContainer.style.display = 'none';
-            }
+    // 2. REZERWOWANIE WOLNYCH KAFELKÓW
+    if (status === 'free' || status === 'selecting') {
+        if (slot.classList.contains('selecting')) {
+            slot.classList.replace('selecting', 'free');
+            selectedSlots = selectedSlots.filter(t => t !== time);
+        } else {
+            slot.classList.replace('free', 'selecting');
+            selectedSlots.push(time);
         }
-    };
+        slot.setAttribute('aria-label', `Godzina ${time}, status: ${slot.classList[1]}`);
+    }
 
-    // Zwijanie panelu anulowania rezerwacji
-    closeCancelBtn?.addEventListener('click', () => {
-        slotsToCancel = [];
-        generateTimeSlots(); 
-    });
-
-    // Zabezpieczenie logiczne - sprawdza, czy godziny układają się "po kolei", a nie z przerwami
-    const isValidBookingState = (proposedBookings) => {
-        if (proposedBookings.length === 0) return true; 
-        const indices = proposedBookings.map(t => generatedHoursArray.indexOf(t));
-        
-        // Pętla sprawdza, czy obok zaznaczonego indeksu znajduje się bezpośrednio okienko o numer przed lub numer po nim
-        for (let i = 0; i < indices.length; i++) {
-            const currentIdx = indices[i];
-            const hasNeighbor = indices.includes(currentIdx - 1) || indices.includes(currentIdx + 1);
-            if (!hasNeighbor) return false; 
+    // 3. ANULOWANIE WŁASNYCH REZERWACJI (Tylko zaznaczanie na razie)
+    if (status === 'my-booking' || status === 'canceling') {
+        if (slot.classList.contains('canceling')) {
+            slot.classList.replace('canceling', 'my-booking');
+            selectedToCancel = selectedToCancel.filter(t => t !== time);
+        } else {
+            slot.classList.replace('my-booking', 'canceling');
+            selectedToCancel.push(time);
         }
-        return true;
-    };
+        slot.setAttribute('aria-label', `Godzina ${time}, status: ${slot.classList[1]}`);
 
-    // Zatwierdzanie usunięcia starych rezerwacji
-    confirmCancelBtn?.addEventListener('click', () => {
-        if (slotsToCancel.length === 0) return;
+        const cancelContainer = document.getElementById('cancel-container');
+        const cancelLabel = document.getElementById('cancel-time-label');
 
-        // Symulacja tego, jak wyglądałby kalendarz po usunięciu wybranych okienek
-        const proposedNewBookings = myBookings.filter(t => !slotsToCancel.includes(t));
+        if (selectedToCancel.length > 0) {
+            cancelContainer.style.display = 'block';
+            cancelLabel.textContent = selectedToCancel.sort().join(', ');
+        } else {
+            cancelContainer.style.display = 'none';
+        }
+    }
+}
 
-        // Sprawdzamy, czy po kasowaniu nie zostały puste luki (pojedyncze okienka trwające zaledwie 30 min)
-        if (!isValidBookingState(proposedNewBookings)) {
-            if (bookingMessage) {
-                bookingMessage.textContent = `Błąd: Zaznacz wszystkie powiązane okienka, aby anulować cały blok.`;
-                bookingMessage.className = 'message-box error';
-                bookingMessage.style.display = 'block';
-            }
+// ==========================================
+// WYSYŁANIE NOWEJ REZERWACJI (ZABEZPIECZENIA I POST)
+// ==========================================
+const confirmBookingBtn = document.getElementById('confirm-booking-btn');
+if (confirmBookingBtn) {
+    confirmBookingBtn.addEventListener('click', async () => {
+        const resDate = dateInput.value;
+
+        if (!resDate) {
+            showMessage('booking-message', 'Błąd: Wybierz datę rezerwacji z kalendarza.', true);
             return;
         }
 
-        // Wszystko gra, podmieniamy stan aplikacji i generujemy nowe widoki
-        myBookings = proposedNewBookings;
-        const removedSlotsText = slotsToCancel.sort().join(', ');
-        generateTimeSlots(); 
+        // WALIDACJA NOWEGO STANU
+        const proposedBookings = [...myBookings, ...selectedSlots];
         
-        if (bookingMessage) {
-            bookingMessage.textContent = `Pomyślnie anulowano rezerwacje: ${removedSlotsText}.`;
-            bookingMessage.className = 'message-box success';
-            bookingMessage.style.display = 'block';
+        if (selectedSlots.length === 0) {
+            showMessage('booking-message', 'Błąd: Zaznacz kafelki, które chcesz zarezerwować.', true);
+            return;
+        }
+
+        if (!validateContinuousBlock(proposedBookings)) {
+            showMessage('booking-message', 'Błąd: Twój pobyt na siłowni musi stanowić ciągły blok od 1 do 2 godzin (maksymalnie 4 kafelki). Kafelki muszą do siebie przylegać.', true);
+            return;
+        }
+
+        // WYSYŁKA DO BAZY DANYCH (POST)
+        try {
+            const response = await fetch('http://localhost:5000/api/reservations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: currentUserId,
+                    reservation_date: resDate,
+                    time_slots: selectedSlots
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('booking-message', 'Pomyślnie zarezerwowano trening!', false);
+                selectedSlots = [];
+                // Po udanym zapisie pobieramy odświeżony stan kafelków
+                fetchReservations(resDate);
+            } else {
+                showMessage('booking-message', data.message, true);
+            }
+        } catch (err) {
+            console.error(err);
+            showMessage('booking-message', 'Błąd połączenia z serwerem.', true);
         }
     });
+}
 
-    // Obsługa wybierania białych (pustych) okienek
-    const toggleSlotSelection = (slotElement, time) => {
-        if (slotElement.classList.contains('selecting')) {
-            slotElement.classList.remove('selecting'); // Odznaczanie
-            currentlySelectedSlots = currentlySelectedSlots.filter(t => t !== time);
-        } else {
-            slotElement.classList.add('selecting'); // Zaznaczanie (żółty kolor)
-            currentlySelectedSlots.push(time);
-        }
-    };
+// ==========================================
+// ANULOWANIE I CZYSZCZENIE
+// ==========================================
+const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+if (confirmCancelBtn) {
+    confirmCancelBtn.addEventListener('click', async () => {
+        if (selectedToCancel.length === 0) return;
 
-    // Zatwierdzanie dodania NOWYCH rezerwacji (Przycisk pod kalendarzem)
-    confirmBtn?.addEventListener('click', () => {
-        if (currentlySelectedSlots.length === 0) return;
+        // WALIDACJA STANU PO USUNIĘCIU
+        const remainingBookings = myBookings.filter(t => !selectedToCancel.includes(t));
 
-        // Reguła biznesowa nr 1: Jeśli próbujesz zarezerwować tylko 1 okienko (30 min)
-        if (currentlySelectedSlots.length === 1) {
-            const selectedTime = currentlySelectedSlots[0];
-            const indexInArray = generatedHoursArray.indexOf(selectedTime);
-            
-            // Sprawdzamy co było pół godziny temu i co będzie za pół godziny
-            const prevSlot = generatedHoursArray[indexInArray - 1];
-            const nextSlot = generatedHoursArray[indexInArray + 1];
-            
-            // Pojedyncze okienko możemy zatwierdzić TYLKO gdy sąsiaduje już z inną naszą rezerwacją (jest przedłużeniem)
-            const isExtension = myBookings.includes(prevSlot) || myBookings.includes(nextSlot);
-            
-            if (!isExtension) {
-                if (bookingMessage) {
-                    bookingMessage.textContent = 'Błąd: Nowa rezerwacja musi trwać minimum 1 godzinę. Pojedynczy kafelek możesz wybrać tylko jako przedłużenie.';
-                    bookingMessage.className = 'message-box error';
-                    bookingMessage.style.display = 'block';
-                }
-                return;
-            }
-        } else {
-            // Reguła biznesowa nr 2: Gdy rezerwujesz wiele okien, muszą iść po kolei
-            const selectedIndices = currentlySelectedSlots
-                .map(time => generatedHoursArray.indexOf(time))
-                .sort((a, b) => a - b);
-
-            let isConsecutive = true;
-            for (let i = 1; i < selectedIndices.length; i++) {
-                if (selectedIndices[i] !== selectedIndices[i - 1] + 1) {
-                    isConsecutive = false;
-                    break; // Przerwanie pętli ze względu na znalezienie przerwy
-                }
-            }
-
-            if (!isConsecutive) {
-                if (bookingMessage) {
-                    bookingMessage.textContent = 'Błąd: Wybrane godziny muszą następować bezpośrednio po sobie.';
-                    bookingMessage.className = 'message-box error';
-                    bookingMessage.style.display = 'block';
-                }
-                return;
-            }
+        if (!validateContinuousBlock(remainingBookings)) {
+            showMessage('booking-message', 'Błąd: Po anulowaniu, Twój pozostały czas musi stanowić ciągły blok min. 1 godziny. Nie możesz "rozbić" treningu na pół ani zostawić pojedynczego kafelka.', true);
+            return;
         }
 
-        // Wszystkie sprawdziany pomyślne - wpisujemy rezerwację (później wyślemy to do bazy)
-        myBookings.push(...currentlySelectedSlots);
-        if (bookingMessage) {
-            bookingMessage.textContent = `Sukces! Zarezerwowano terminy: ${currentlySelectedSlots.sort().join(', ')}`;
-            bookingMessage.className = 'message-box success';
-            bookingMessage.style.display = 'block';
+        const resDate = dateInput.value;
+        const count = selectedToCancel.length;
+
+        try {
+            // Wysłanie zapytania DELETE do serwera
+            const response = await fetch('http://localhost:5000/api/reservations', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: currentUserId,
+                    user_role: userRole,
+                    reservation_date: resDate,
+                    time_slots: selectedToCancel
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('booking-message', `Usunięto z rezerwacji ${count} blok(i) czasowe.`, false);
+                selectedToCancel = [];
+                document.getElementById('cancel-container').style.display = 'none';
+                
+                // Odświeżenie widoku kalendarza (pobranie aktualnego stanu z bazy)
+                fetchReservations(resDate);
+            } else {
+                showMessage('booking-message', data.message, true);
+            }
+        } catch (err) {
+            console.error(err);
+            showMessage('booking-message', 'Błąd połączenia z serwerem podczas anulowania.', true);
         }
-        
-        generateTimeSlots(); // Przerysuj kalendarz z nowymi zielonymi polami
     });
-});
+}
+
+const closeCancelBtn = document.getElementById('close-cancel-btn');
+if (closeCancelBtn) {
+    closeCancelBtn.addEventListener('click', () => {
+        selectedToCancel = [];
+        document.getElementById('cancel-container').style.display = 'none';
+        generateTimeSlots();
+    });
+}
+
+// ==========================================
+// WYLOGOWANIE I RESET STANU
+// ==========================================
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        userRole = 'client';
+        currentUserId = null;
+        selectedSlots = [];
+        selectedToCancel = [];
+        myBookings = [];
+        takenByOthers = [];
+        
+        hideMessage('booking-message');
+        hideMessage('auth-message-box');
+        
+        document.getElementById('loginForm').reset();
+        document.getElementById('cancel-container').style.display = 'none';
+        document.getElementById('reservation-section').style.display = 'none';
+        document.getElementById('auth-section').style.display = 'block';
+    });
+}
 
 // ==========================================
 // PRAWDZIWE LOGOWANIE (Bezpieczne)
@@ -366,10 +355,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const password = document.getElementById('login-password').value;
     const msgBox = document.getElementById('auth-message-box');
 
-    // Podstawowa walidacja front-endowa formatu e-mail
+    // Walidacja formatu e-mail
     if (!email.includes('@')) {
         if (msgBox) {
-            msgBox.textContent = "Podaj poprawny format e-mail.";
+            msgBox.textContent = "Podaj poprawny format e-mail (musi zawierać znak @).";
             msgBox.style.display = 'block';
             msgBox.style.color = '#dc3545';
         }
@@ -386,23 +375,23 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         const data = await response.json();
         
         if (response.ok) {
-            // === TYLKO TUTAJ NASTĘPUJE PRZEJŚCIE DO PANELU ===
+            // === PRZEJŚCIE DO PANELU PO ZALOGOWANIU ===
+            currentUserId = data.user.id;
             userRole = data.user.role; 
+            
             document.getElementById('auth-section').style.display = 'none';
             document.getElementById('reservation-section').style.display = 'block';
             
             if (msgBox) msgBox.style.display = 'none';
             
-            // Automatyczne ustawienie dzisiejszej daty i wygenerowanie kafelków
-            const dateInput = document.getElementById('reservation-date');
+            // Automatyczne ustawienie daty i wczytanie rezerwacji z bazy
             if (dateInput) {
                 const today = new Date().toISOString().split('T')[0];
                 dateInput.value = today;
+                fetchReservations(today);
             }
-            
-            generateTimeSlots();
         } else {
-            // Błąd zwrócony przez serwer (np. złe hasło lub brak @)
+            // Błąd zwrócony przez serwer
             if (msgBox) {
                 msgBox.textContent = data.message;
                 msgBox.style.display = 'block';
@@ -427,9 +416,19 @@ if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const email = document.getElementById('reg-email').value;
+        const email = document.getElementById('reg-email').value.trim();
         const password = document.getElementById('reg-password').value;
         const msgBox = document.getElementById('auth-message-box');
+
+        // Walidacja formatu e-mail
+        if (!email.includes('@')) {
+            if (msgBox) {
+                msgBox.textContent = "Podaj poprawny format e-mail (musi zawierać znak @).";
+                msgBox.style.display = 'block';
+                msgBox.style.color = '#dc3545';
+            }
+            return;
+        }
 
         try {
             const response = await fetch('http://localhost:5000/api/register', {
@@ -441,32 +440,31 @@ if (registerForm) {
             const data = await response.json();
             
             if (response.ok) {
-                // Rejestracja udana - pokazujemy zielony komunikat i przenosimy do logowania
                 if (msgBox) {
                     msgBox.textContent = "Konto założone! Możesz się teraz zalogować.";
                     msgBox.style.display = 'block';
-                    msgBox.style.color = '#28a745'; // Zielony kolor sukcesu
+                    msgBox.style.color = '#28a745'; 
                 }
                 registerForm.reset();
                 
-                // Automatyczne przejście do ekranu logowania po 2 sekundach
                 setTimeout(() => {
                     document.getElementById('show-login').click();
                     if(msgBox) msgBox.style.display = 'none';
                 }, 2000);
             } else {
-                // Błąd rejestracji (np. za krótkie hasło, lub e-mail już istnieje)
                 if (msgBox) {
                     msgBox.textContent = data.message;
                     msgBox.style.display = 'block';
                     msgBox.style.color = '#dc3545';
-                } else {
-                    alert(data.message);
                 }
             }
         } catch (err) {
             console.error("Błąd fetch:", err);
-            alert("Błąd połączenia z serwerem.");
+            if (msgBox) {
+                msgBox.textContent = "Błąd połączenia z serwerem.";
+                msgBox.style.display = 'block';
+                msgBox.style.color = '#dc3545';
+            }
         }
     });
 }
