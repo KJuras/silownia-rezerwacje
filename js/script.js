@@ -7,7 +7,7 @@ let selectedSlots = [];      // Kafelki wybrane do nowej rezerwacji
 let selectedToCancel = [];   // Kafelki wybrane do anulowania
 
 let myBookings = [];         // Pobierane dynamicznie z bazy danych
-let takenByOthers = [];      // Pobierane dynamicznie z bazy danych
+let takenByOthers = {};      // Pobierane dynamicznie z bazy danych
 
 const grid = document.getElementById('time-slots-grid');
 const dateInput = document.getElementById('reservation-date');
@@ -92,14 +92,14 @@ async function fetchReservations(dateString) {
         
         // Czyszczenie lokalnych tablic
         myBookings = [];
-        takenByOthers = [];
+        takenByOthers = {}; // Zmiana na obiekt
 
         // Kategoryzowanie pobranych rezerwacji
         reservationsFromDb.forEach(res => {
             if (res.user_id === currentUserId) {
                 myBookings.push(res.time_slot);
             } else {
-                takenByOthers.push(res.time_slot);
+                takenByOthers[res.time_slot] = res.email; // Przypisujemy e-mail do konkretnej godziny
             }
         });
 
@@ -124,25 +124,30 @@ function generateTimeSlots() {
             const time = `${hour.toString().padStart(2, '0')}:${minutes}`;
             
             let status = 'free';
-            if (takenByOthers.includes(time)) status = 'taken';
+            // Sprawdzamy czy czas jest kluczem w obiekcie takenByOthers
+            if (Object.keys(takenByOthers).includes(time)) status = 'taken';
             if (myBookings.includes(time)) status = 'my-booking';
 
-            // Zachowanie wizualnego stanu przy przerysowaniu
             if (selectedSlots.includes(time)) status = 'selecting';
             if (selectedToCancel.includes(time)) status = 'canceling';
 
             const slot = document.createElement('div');
             slot.classList.add('time-slot', status);
-            slot.textContent = time;
+            
+            // NOWE: Wyświetlanie e-maila tylko dla admina
+            if (status === 'taken' && userRole === 'admin') {
+                const clientEmail = takenByOthers[time];
+                slot.innerHTML = `${time}<br><span style="font-size: 10px; word-break: break-all;">${clientEmail}</span>`;
+                slot.title = `Rezerwacja klienta: ${clientEmail}`; // Tooltip po najechaniu myszą
+            } else {
+                slot.textContent = time;
+            }
 
-            // Dostępność dla niedowidzących (a11y)
             slot.tabIndex = 0; 
             slot.setAttribute('aria-label', `Godzina ${time}, status: ${status}`);
 
-            // Obsługa myszy
             slot.addEventListener('click', () => handleSlotAction(slot, time, status));
             
-            // Obsługa klawiatury (Enter / Spacja)
             slot.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
@@ -161,11 +166,17 @@ function generateTimeSlots() {
 function handleSlotAction(slot, time, status) {
     hideMessage('booking-message');
 
-    // 1. BLOKADA: Kafelki zajęte przez innych ubiegających się
+    // 1. BLOKADA I ADMIN CANCEL
     if (status === 'taken') {
         if (userRole === 'admin') {
-            // Zwykła wizualizacja dla admina, bez logiki klikania w zajęte kafelki
-            showMessage('booking-message', `[PODGLĄD ADMINA] Termin ${time} jest zarezerwowany przez innego klienta.`, true);
+            // Admin traktuje "taken" jak własną rezerwację - może ją anulować
+            slot.classList.replace('taken', 'canceling');
+            selectedToCancel.push(time);
+            
+            const cancelContainer = document.getElementById('cancel-container');
+            document.getElementById('cancel-time-label').textContent = selectedToCancel.sort().join(', ');
+            cancelContainer.style.display = 'block';
+            
         } else {
             showMessage('booking-message', `Termin ${time} jest niedostępny. Wybierz wolny godzinowy blok.`, true);
         }
@@ -184,23 +195,25 @@ function handleSlotAction(slot, time, status) {
         slot.setAttribute('aria-label', `Godzina ${time}, status: ${slot.classList[1]}`);
     }
 
-    // 3. ANULOWANIE WŁASNYCH REZERWACJI (Tylko zaznaczanie na razie)
+    // 3. ANULOWANIE (My Booking lub przywracanie cudzego przez Admina)
     if (status === 'my-booking' || status === 'canceling') {
         if (slot.classList.contains('canceling')) {
-            slot.classList.replace('canceling', 'my-booking');
+            // Jeśli admin odznaczy cudzy kafelek, wraca on do statusu "taken"
+            if (userRole === 'admin' && Object.keys(takenByOthers).includes(time)) {
+                slot.classList.replace('canceling', 'taken');
+            } else {
+                slot.classList.replace('canceling', 'my-booking');
+            }
             selectedToCancel = selectedToCancel.filter(t => t !== time);
         } else {
             slot.classList.replace('my-booking', 'canceling');
             selectedToCancel.push(time);
         }
-        slot.setAttribute('aria-label', `Godzina ${time}, status: ${slot.classList[1]}`);
-
+        
         const cancelContainer = document.getElementById('cancel-container');
-        const cancelLabel = document.getElementById('cancel-time-label');
-
         if (selectedToCancel.length > 0) {
             cancelContainer.style.display = 'block';
-            cancelLabel.textContent = selectedToCancel.sort().join(', ');
+            document.getElementById('cancel-time-label').textContent = selectedToCancel.sort().join(', ');
         } else {
             cancelContainer.style.display = 'none';
         }
