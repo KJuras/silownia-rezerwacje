@@ -487,3 +487,55 @@ document.getElementById('show-login').addEventListener('click', (e) => {
     const msgBox = document.getElementById('auth-message-box');
     if(msgBox) msgBox.style.display = 'none';
 });
+
+// ==========================================
+// NAWIGACJA STRZAŁKAMI PO KAFELKACH (a11y)
+// ==========================================
+if (grid) {
+    grid.addEventListener('keydown', (e) => {
+        const allowedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+        
+        // Ignoruj inne klawisze, niech obsługuje je domyślna logika (np. Tab, Enter)
+        if (!allowedKeys.includes(e.key)) return;
+
+        // Pobierz wszystkie kafelki i znajdź ten aktualnie podświetlony
+        const slots = Array.from(grid.querySelectorAll('.time-slot'));
+        const currentIndex = slots.indexOf(document.activeElement);
+        
+        if (currentIndex === -1) return; // Przerwij, jeśli żaden kafelek nie ma fokusu
+
+        e.preventDefault(); // Zablokuj domyślne przewijanie całej strony przeglądarki strzałkami
+
+        // Dynamiczne liczenie kolumn (sprawdza ile kafelków ma ten sam dystans od góry)
+        let cols = 0;
+        if (slots.length > 0) {
+            const firstTop = slots[0].offsetTop;
+            for (let i = 0; i < slots.length; i++) {
+                if (slots[i].offsetTop === firstTop) cols++;
+                else break;
+            }
+        }
+
+        let nextIndex = currentIndex;
+
+        switch (e.key) {
+            case 'ArrowLeft':
+                nextIndex = currentIndex - 1;
+                break;
+            case 'ArrowRight':
+                nextIndex = currentIndex + 1;
+                break;
+            case 'ArrowUp':
+                nextIndex = currentIndex - cols;
+                break;
+            case 'ArrowDown':
+                nextIndex = currentIndex + cols;
+                break;
+        }
+
+        // Zmiana fokusu na nowy kafelek, jeśli mieści się w zakresie siatki
+        if (nextIndex >= 0 && nextIndex < slots.length) {
+            slots[nextIndex].focus();
+        }
+    });
+}
