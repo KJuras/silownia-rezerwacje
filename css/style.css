@@ -1,44 +1,49 @@
-/* Zmienne globalne - centralne miejsce do zarządzania kolorystyką i motywem aplikacji. 
-   Ułatwiają utrzymanie spójności i ewentualne wdrożenie ciemnego motywu (Dark Mode). */
+/* ZMIENNE GLOBALNE I KOLORYSTYKA     */
+/* Definiujemy główne kolory w jednym miejscu (w obiekcie :root).
+   Dzięki temu, jeśli np. zmienimy zdanie i zamiast niebieskiego będziemy
+   chcieli zielony motyw, wystarczy zmienić wartość w tym jednym miejscu,
+   a kolor zaktualizuje się automatycznie na całej stronie. */
 :root {
-    --primary-color: #2563eb;
-    --primary-hover: #1d4ed8;
-    --bg-color: #f3f4f6;
-    --surface-color: #ffffff;
-    --text-main: #1f2937;
-    --text-muted: #6b7280;
-    --border-color: #e5e7eb;
-    --radius: 8px; /* Promień zaokrąglenia narożników wykorzystywany w całym projekcie */
+    --primary-color: #2563eb;       /* Główny kolor np. przycisków */
+    --primary-hover: #1d4ed8;       /* Odcień przy najechaniu myszką */
+    --bg-color: #f3f4f6;            /* Tło całej strony */
+    --surface-color: #ffffff;       /* Tło kafelków i okien */
+    --text-main: #1f2937;           /* Główny kolor tekstu */
+    --text-muted: #6b7280;          /* Dla tekstów pomocniczych */
+    --border-color: #e5e7eb;        /* Kolor obramowania pół tekstowych */
+    --radius: 8px;                  /* Promień zaokrąglenia wszystkich rogów (np. w oknie logowania) */
 }
 
-/* Reset podstawowych marginesów, paddingów oraz ustawienie box-sizing.
-   Zapewnia to przewidywalne zachowanie rozmiarów elementów niezależnie od przeglądarki. */
+/* RESET PRZEGLĄDARKI I BAZA      */
+/* Gwiazdka (*) oznacza, że te reguły dotyczą absolutnie każdego elementu na stronie.
+   Zerujemy domyślne marginesy przeglądarek, żeby wszędzie wyglądało to identycznie. */
 * {
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
+    box-sizing: border-box;         /* Padding nie będzie nam rozpychał szerokości elementów */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Wykorzystanie modułu Flexbox do perfekcyjnego wyśrodkowania 
-   kontenera logowania w pionie i poziomie na całym ekranie. */
+/* Ustawienie głównego tła strony i idealne wyśrodkowanie okna logowania 
+   przy użyciu mechanizmu "Flexbox" */
 body {
     background-color: var(--bg-color);
     color: var(--text-main);
     display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+    justify-content: center;        /* Centrowanie w poziomie */
+    align-items: center;            /* Centrowanie w pionie */
+    min-height: 100vh;              /* Strona zajmuje zawsze równe 100% wysokości okna przeglądarki */
 }
 
-/* Główny kontener logowania - nadanie mu wyglądu nowoczesnej "karty" unoszącej się nad tłem */
+/* 3. EKRAN LOGOWANIA I FORMULARZE            */
+/* Karta z formularzem na samym środku */
 .login-container {
     background-color: var(--surface-color);
     padding: 2.5rem;
     border-radius: var(--radius);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Delikatny cień */
     width: 100%;
-    max-width: 400px; /* Ograniczenie szerokości gwarantuje responsywność na dużych i małych ekranach */
+    max-width: 400px;               /* Karta nie rozciągnie się bardziej, nawet na szerokim monitorze */
     text-align: center;
 }
 
@@ -48,7 +53,7 @@ body {
     color: var(--text-main);
 }
 
-/* Kontener dla pojedynczego pola formularza - zapewnia równe odstępy */
+/* Kontener otulający pojedyncze pole formularza i jego podpis (etykietę) */
 .form-group {
     margin-bottom: 1.25rem;
     text-align: left;
@@ -62,24 +67,25 @@ body {
     color: var(--text-main);
 }
 
-/* Stylizacja samych pól tekstowych (input) - delikatne obramowanie, zaokrąglenia i przygotowane przejścia */
+/* Pola do wpisywania tekstu (e-mail, hasło) */
 .form-group input {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     font-size: 1rem;
-    transition: border-color 0.2s, box-shadow 0.2s; /* Płynna animacja, która uruchomi się podczas kliknięcia (focus) */
+    /* Efekt "transition" sprawia, że po kliknięciu ramka pola zmieni kolor płynnie, a nie "skokowo" */
+    transition: border-color 0.2s, box-shadow 0.2s; 
 }
 
-/* Efekt "focus" - czytelna, wizualna informacja zwrotna dla użytkownika, gdy aktywnie wpisuje tekst */
+/* Efekt ":focus" uruchamia się w momencie, gdy użytkownik kliknie w dane pole tekstowe */
 .form-group input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); /* Delikatna, niebieska poświata wskazująca aktywność */
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); /* Niebieska poświata wokół klikniętego pola */
 }
 
-/* Stylizacja głównego przycisku wysyłającego formularz */
+/* Główne przyciski na stronie */
 button[type="submit"] {
     width: 100%;
     background-color: var(--primary-color);
@@ -94,18 +100,17 @@ button[type="submit"] {
     transition: background-color 0.2s;
 }
 
-/* Zmiana koloru przycisku po najechaniu myszką na nieco ciemniejszy odcień niebieskiego */
 button[type="submit"]:hover {
     background-color: var(--primary-hover);
 }
 
+/* Ostylowanie drobnych tekstów i linków (np. "Nie masz konta? Zarejestruj się") */
 .login-container p {
     margin-top: 1.5rem;
     font-size: 0.875rem;
     color: var(--text-muted);
 }
 
-/* Ostylowanie odnośnika do rejestracji */
 .login-container a {
     color: var(--primary-color);
     text-decoration: none;
@@ -113,18 +118,21 @@ button[type="submit"]:hover {
 }
 
 .login-container a:hover {
-    text-decoration: underline;
+    text-decoration: underline; /* Podkreślenie linku po najechaniu myszką */
 }
-/* Stylizacja dynamicznych komunikatów (sukces/błąd) */
+
+/* 4. POLE KOMUNIKATÓW (Błędy i sukcesy)      */
+/* Styl bazowy dla naszego dymku z powiadomieniami na dole okna logowania */
 .message-box {
     margin-top: 1rem;
     padding: 0.75rem;
     border-radius: var(--radius);
     font-size: 0.875rem;
     font-weight: 500;
-    display: none; /* Domyślnie ukryte */
+    display: none; /* Domyślnie ukrywamy ten dymek, uaktywni go dopiero kod JavaScript */
 }
 
+/* Klasa doklejana przez skrypt JS w przypadku porażki (np. złe hasło) - kolor czerwony */
 .message-box.error {
     display: block;
     background-color: #fee2e2;
@@ -132,6 +140,7 @@ button[type="submit"]:hover {
     border: 1px solid #f87171;
 }
 
+/* Klasa doklejana w przypadku sukcesu (np. pomyślna rejestracja) - kolor zielony */
 .message-box.success {
     display: block;
     background-color: #dcfce3;
@@ -139,7 +148,7 @@ button[type="submit"]:hover {
     border: 1px solid #86efac;
 }
 
-/* --- STYLIZACJA PANELU REZERWACJI --- */
+/* 5. GŁÓWNY PANEL KALENDARZA                 */
 .reservation-container {
     max-width: 800px;
     margin: 40px auto;
@@ -154,7 +163,7 @@ button[type="submit"]:hover {
     font-size: 1.1em;
 }
 
-/* Legenda kolorów */
+/* Legenda tłumacząca kolory: małe kwadraciki ułożone obok siebie */
 .legend {
     display: flex;
     gap: 20px;
@@ -163,7 +172,9 @@ button[type="submit"]:hover {
 .legend-item { display: flex; align-items: center; gap: 5px; }
 .box { width: 20px; height: 20px; border: 1px solid #ccc; border-radius: 4px; }
 
-/* Siatka godzin (Grid) */
+/* Siatka kalendarza - system CSS Grid. 
+   Opcja "auto-fill" oznacza, że przeglądarka sama obliczy, ile kafelków
+   szerokości 100px zmieści się w jednym rzędzie, dzięki czemu jest to responsywne (RWD). */
 .time-slots-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -171,7 +182,8 @@ button[type="submit"]:hover {
     margin-bottom: 20px;
 }
 
-/* Pojedyncze okienko czasu */
+/* 6. LOGIKA KOLORÓW DLA POJEDYNCZYCH KAFELKÓW */
+/* Styl bazowy dla każdego kafelka z godziną */
 .time-slot {
     padding: 15px 10px;
     text-align: center;
@@ -179,50 +191,50 @@ button[type="submit"]:hover {
     border-radius: 5px;
     cursor: pointer;
     font-weight: bold;
-    transition: 0.2s;
+    transition: 0.2s; /* Delikatna, spowolniona zmiana koloru po najechaniu myszką */
 }
 
-/* KOLORY ZGODNIE Z ZAMÓWIENIEM */
+/* KOLORY KLASYCZNE: Wolne, Zajęte (niedozwolone), Zarezerwowane przeze mnie */
 .time-slot.free { background-color: #ffffff; color: #333; } /* BIAŁE */
-.time-slot.taken { background-color: #ff4c4c; color: white; cursor: not-allowed; } /* CZERWONE */
-.time-slot.my-booking { background-color: #28a745; color: white; cursor: not-allowed; } /* ZIELONE */
-.time-slot.selecting { background-color: #ffc107; color: black; border-color: #d39e00; } /* ŻÓŁTE - aktualnie kliknięte */
+.time-slot.taken { background-color: #ff4c4c; color: white; cursor: not-allowed; } /* CZERWONE (kursor blokady) */
+.time-slot.my-booking { background-color: #28a745; color: white; cursor: pointer; } /* ZIELONE */
 
+/* KOLORY TYMCZASOWE (Zmieniające się tylko podczas przeklikiwania i przed zatwierdzeniem) */
+.time-slot.selecting { background-color: #ffc107; color: black; border-color: #d39e00; } /* ŻÓŁTE - aktualnie wybrane */
+.time-slot.canceling { background-color: #dc3545 !important; border-color: #c82333 !important; color: white; } /* Czerwone przy anulowaniu, Używamy dopisku !important, aby bezwzględnie wymusić czerwony kolor 
+   i nadpisać inne przypisane wcześniej klasy */
+
+/* Po najechaniu myszą na pusty kafelek jego ramka robi się mocniejsza */
 .time-slot.free:hover { border-color: #999; }
-.booking-btn { background-color: #007bff; width: 100%; font-size: 1.2em; margin-top: 10px; }
+.time-slot.my-booking:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+/* Odzwierciedlenie tych samych kolorów w malej legendzie nad kalendarzem */
 .box.free { background-color: #ffffff; }
 .box.taken { background-color: #ff4c4c; }
 .box.my-booking { background-color: #28a745; }
 .box.selecting { background-color: #ffc107; }
 
+/* 7. POZOSTAŁE PRZYCISKI I WIDOKI */
+/* Duży przycisk pod kalendarzem potwierdzający całą operację */
+.booking-btn { background-color: #007bff; width: 100%; font-size: 1.2em; margin-top: 10px; }
+.booking-btn:hover { background-color: #0056b3; }
 
-/* --- EFEKTY NAYECHANIA (HOVER) I PRZYCISKI --- */
+/* Uniwersalna klasa dla przycisków wywołująca delikatne "wbicie" przycisku po jego kliknięciu (:active) */
 .hover-btn {
     transition: background-color 0.3s ease, transform 0.1s;
     cursor: pointer;
 }
 .hover-btn:active { transform: scale(0.98); }
 
-/* Podświetlenie przycisku potwierdzenia */
-.booking-btn:hover { background-color: #0056b3; }
-
-/* Przycisk wylogowania */
+/* Pasek nawigacyjny i przycisk wylogowania w prawym górnym rogu */
 .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .logout-btn { background-color: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; }
 .logout-btn:hover { background-color: #5a6268; }
 
-/* Podświetlanie ZIELONYCH (własnych) okienek */
-.time-slot.my-booking { 
-    background-color: #28a745; 
-    color: white; 
-    cursor: pointer; /* Zmieniono z not-allowed na pointer */
-} 
-.time-slot.my-booking:hover {
-    background-color: #218838;
-    border-color: #1e7e34;
-}
-
-/* --- INTERFEJS ANULOWANIA REZERWACJI --- */
+/* Dolny kontener z zapytaniem "Czy na pewno usunąć rezerwację?", pojawia się po odznaczeniu zielonego kafelka */
 .cancel-container {
     background: #fff3cd;
     border: 1px solid #ffeeba;
@@ -237,17 +249,15 @@ button[type="submit"]:hover {
 .close-btn { background-color: #6c757d; color: white; padding: 10px 15px; border: none; border-radius: 5px; }
 .close-btn:hover { background-color: #5a6268; }
 
-/* Klasa dla rezerwacji zaznaczonych do anulowania */
-.time-slot.to-cancel { 
-    background-color: #dc3545 !important; 
-    border-color: #c82333 !important; 
-    color: white;
-}
-/* Zwiększona widoczność dla osób nawigujących klawiaturą */
+
+/* 8. DOSTĘPNOŚĆ CYFROWA (A11Y)               */
+/* Pogrubione i powiększone kontury (outline) elementów dla osób,
+   które nie używają myszki, a poruszają się po stronie i po kafelkach 
+   za pomocą klawisza TAB oraz strzałek. */
 input:focus, 
 button:focus, 
 .time-slot:focus {
-    outline: 3px solid #12ad0d; /* Głęboki fiolet (możesz zmienić na inny z Twojej palety) */
+    outline: 3px solid #12ad0d; /* Jasnozielony, bardzo wyraźny kolor fokusu widoczny na szarym i białym tle */
     outline-offset: 3px;
     border-radius: 4px;
 }

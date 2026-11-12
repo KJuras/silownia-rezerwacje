@@ -83,11 +83,11 @@ app.post('/api/register', async (req, res) => {
     try {
         console.log(`[REGISTER ATTEMPT] Próba rejestracji dla e-mail: ${email}`);
         
-        // Szyfrujemy hasło algorytmem bcrypt
+        // Szyfrowanie hasło algorytmem bcrypt
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        // ZAWSZE przypisujemy rolę zwykłego klienta. Nikt z zewnątrz nie utworzy admina!
+        // Zawsze przypisujemy rolę zwykłego klienta.
         const role = 'client';
 
         // Zapis do bazy Neon.tech
@@ -159,14 +159,18 @@ app.post('/api/login', async (req, res) => {
 // POBIERANIE REZERWACJI DLA DANEGO DNIA (GET)
 // ==========================================
 app.get('/api/reservations', async (req, res) => {
+    // Pobieramy datę przekazaną przez przeglądarkę w adresie URL
     const { date } = req.query;
 
+    // Sprawdzamy, czy użytkownik na pewno podał datę. 
+    // Jeśli nie, przerywamy działanie i zwracamy błąd.
     if (!date) {
         return res.status(400).json({ message: 'Wymagane jest podanie daty.' });
     }
 
     try {
-        // Pobieramy rezerwacje dla danego dnia wraz z ID i e-mailem właściciela
+        // Odpytujemy bazę danych. Łączymy tabele rezerwacji i użytkowników (JOIN), 
+        // żeby za jednym razem pobrać terminy i od razu e-maile osób rezerwujących.
         const result = await db.query(
             `SELECT r.id, r.user_id, r.reservation_date, r.time_slot, u.email 
              FROM reservations r 
@@ -174,9 +178,11 @@ app.get('/api/reservations', async (req, res) => {
              WHERE r.reservation_date = $1`,
             [date]
         );
-
+        // Odsyłamy gotowe wyniki do przeglądarki w formacie JSON
         res.json(result.rows);
     } catch (err) {
+        // W razie problemów z bazą danych, wypisujemy błąd w konsoli
+        // i odsyłamy klientowi informację o awarii serwera
         console.error(err);
         res.status(500).json({ message: 'Błąd serwera podczas pobierania rezerwacji.' });
     }

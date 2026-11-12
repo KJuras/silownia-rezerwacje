@@ -8,66 +8,60 @@
 </head>
 <body>
     
-    <!-- ==========================================
-         GŁÓWNY KONTENER APLIKACJI
-         Tag <main> informuje, że tu znajduje się kluczowa treść strony.
-         ========================================== -->
+    <!-- Główny kontener strony, w którym znajduje się cała treść aplikacji -->
     <main>
         
-        <!-- ==========================================
-             SEKCJA 1: EKRAN POWITALNY (LOGOWANIE I REJESTRACJA)
-             Używamy tagu <section> zamiast <div> do wydzielenia logicznej części strony.
-             ========================================== -->
+        <!-- EKRAN POWITALNY: LOGOWANIE I REJESTRACJA   -->
+        <!-- Ta sekcja jest widoczna zaraz po wejściu na stronę. -->
         <section id="auth-section" class="login-container">
             
             <!-- Formularz Logowania (domyślnie widoczny) -->
             <div id="login-box">
                 <h1>Logowanie do siłowni</h1>
+                <!-- Formularz logowania. Atrybut novalidate wyłącza domyślne dymki przeglądarki, bo błędy i powiadomienia obsługujemy w JavaScript. -->
                 <form id="loginForm" novalidate>
                     <div class="form-group">
                         <label for="login-email">Adres e-mail:</label>
-                        <input type="email" id="login-email" required>
+                        <input type="email" id="login-email" required> <!-- Pole e-mail jest wymagane do wysłania formularza (required) -->
                     </div>
                     <div class="form-group">
                         <label for="login-password">Hasło:</label>
-                        <input type="password" id="login-password" required>
+                        <input type="password" id="login-password" required> <!-- Pole hasło jest wymagane do wysłania formularza (required) -->
                     </div>
                     <button type="submit" class="hover-btn">Zaloguj się</button>            
                 </form>
-                <!-- Link przełączający na widok rejestracji -->
+                <!-- Link przełączający na widok rejestracji bez przeładowywania strony-->
                 <p style="text-align: center; margin-top: 15px;">Nie masz konta? <a href="#" id="show-register">Zarejestruj się</a></p>
             </div>
 
-            <!-- Formularz Rejestracji (domyślnie ukryty, pokazuje się po kliknięciu linku wyżej) -->
+            <!-- Formularz Rejestracji (domyślnie ukryty (przez polecenie css: display: none;), pokazuje się po kliknięciu linku wyżej) -->
             <div id="register-box" style="display: none;">
                 <h1>Rejestracja</h1>
                 <form id="registerForm" novalidate>
                     <div class="form-group">
                         <label for="reg-email">Adres e-mail:</label>
-                        <input type="email" id="reg-email" maxlength="255" required>
+                        <input type="email" id="reg-email" maxlength="255" required> <!-- Zabezpieczenie: maksymalna długość maila to 255 znaków (żeby pasowało do limitów w naszej bazie danych) -->
                     </div>
                     <div class="form-group">
                         <label for="reg-password">Hasło (min. 8 znaków):</label>
-                        <input type="password" id="reg-password" maxlength="72" required>
+                        <input type="password" id="reg-password" maxlength="72" required> <!-- Zabezpieczenie: maksymalna długość hasła to 72 znaki (żeby pasowało do limitów w naszej bazie danych) -->
                     </div>
+                    <!-- Przycisk z przypisanym na sztywno zielonym kolorem, który sugeruje pozytywną akcję (dodanie) -->
                     <button type="submit" class="hover-btn" style="background-color: #28a745;">Utwórz konto</button>            
                 </form>
-                <!-- Link przełączający z powrotem na logowanie -->
+                <!-- Link powrotny do ekranu logowania -->
                 <p style="text-align: center; margin-top: 15px;">Masz już konto? <a href="#" id="show-login">Zaloguj się</a></p>
             </div>
 
-            <!-- Wspólne pole na komunikaty (np. błędne hasło, sukces rejestracji) -->
+            <!-- Wspólne pole na komunikaty z JavaScript (np. błędne hasło, sukces rejestracji) -->
             <div id="auth-message-box" class="message-box" style="display: none;"></div>
         </section>
 
-        <!-- ==========================================
-             SEKCJA 2: GŁÓWNY PANEL REZERWACJI (KALENDARZ)
-             Kolejna semantyczna <section>. Początkowo ukryta.
-             ========================================== -->
+        <!-- GŁÓWNY PANEL APLIKACJI: KALENDARZ ZAJĘĆ    -->
+        <!-- Ta sekcja pozostaje całkowicie niewidoczna, dopóki użytkownik poprawnie się nie zaloguje. -->
         <section id="reservation-section" class="reservation-container" style="display: none;">
             
-            <!-- Pasek górny z przyciskiem wylogowania -->
-            <!-- Używamy tagu <header> zamiast <div> dla nagłówka sekcji -->
+            <!-- Górny pasek z nagłówkiem i przyciskiem do wylogowania z systemu -->
             <header class="header-actions">
                 <h1>Witaj w panelu rezerwacji!</h1>
                 <button id="logout-btn" class="logout-btn hover-btn">Wyloguj się</button>
@@ -89,12 +83,12 @@
                 <span class="legend-item"><div class="box selecting"></div> Wybierane</span>
             </div>
 
-            <!-- Główna siatka, do której skrypt JavaScript wrzuca wygenerowane godziny (np. 15:30) -->
+            <!-- Pusty kontener na siatkę. To tutaj plik script.js będzie dynamicznie wklejał kafelki z godzinami  -->
             <div class="scrollable-time-container">
                 <div id="time-slots-grid" class="time-slots-grid"></div>
             </div>
 
-            <!-- Panel pojawiający się tylko w momencie chęci anulowania wybranej rezerwacji -->
+            <!-- Osobny panel anulowania: pojawia się na dole tylko wtedy, gdy celowo klikniemy na naszą własną rezerwację -->
             <div id="cancel-container" class="cancel-container" style="display: none;">
                 <p>Czy na pewno chcesz anulować wybrane rezerwacje: <strong id="cancel-time-label"></strong>?</p>
                 <button id="confirm-cancel-btn" class="cancel-btn hover-btn">Anuluj wybrane</button>
@@ -110,7 +104,7 @@
 
     </main>
 
-    <!-- Podpięcie skryptu z logiką aplikacji na samym końcu -->
+    <!-- Podpięcie skryptu z logiką aplikacji -->
     <script src="js/script.js"></script>
 </body>
 </html>
